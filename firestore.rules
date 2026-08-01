@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function isAdmin() {
+      return isSignedIn() && (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) || request.auth.token.email == 'daleciomacedo@gmail.com');
+    }
+
+    match /app_settings/{documentId} {
+       allow read: if true;
+       allow write: if isAdmin();
+    }
+
+    // --- User Rules ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt'])
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 100
+        && data.createdAt == request.time
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 20))
+        && (!('path' in data) || (data.path is string && data.path.size() <= 200))
+        && (!('plan' in data) || (data.plan in ['free', 'premium']))
+        && (!('commissions' in data) || (data.commissions is number))
+        && (!('isAdmin' in data) || (data.isAdmin is bool));
+    }
+    
+    function isValidUserUpdate(data) {
+      return data.email is string && data.email.size() >= 3 && data.email.size() <= 100
+        && data.updatedAt == request.time
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('whatsapp' in data) || (data.whatsapp is string && data.whatsapp.size() <= 20))
+        && (!('path' in data) || (data.path is string && data.path.size() <= 200))
+        && (!('plan' in data) || (data.plan in ['free', 'premium']))
+        && (!('commissions' in data) || (data.commissions is number))
+        && (!('isAdmin' in data) || (data.isAdmin is bool));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUserUpdate(incoming()) && (
+        isAdmin() || 
+        (incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'displayName', 'whatsapp']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // --- Appointments Rules ---
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['userId', 'title', 'date', 'time', 'category', 'createdAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.date is string && data.date.size() <= 20
+        && data.time is string && data.time.size() <= 20
+        && data.category in ["Trabalho", "Pessoal", "Urgente"]
+        && data.createdAt == request.time
+        && (!('address' in data) || (data.address is string && data.address.size() <= 200))
+        && (!('contact' in data) || (data.contact is string && data.contact.size() <= 200))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000))
+        && (!('reminders' in data) || (data.reminders is list && data.reminders.size() <= 5));
+    }
+    
+    function isValidAppointmentUpdate(data) {
+      return data.userId is string && data.userId == existing().userId
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && data.date is string && data.date.size() <= 20
+        && data.time is string && data.time.size() <= 20
+        && data.category in ["Trabalho", "Pessoal", "Urgente"]
+        && data.updatedAt == request.time
+        && (!('address' in data) || (data.address is string && data.address.size() <= 200))
+        && (!('contact' in data) || (data.contact is string && data.contact.size() <= 200))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000))
+        && (!('reminders' in data) || (data.reminders is list && data.reminders.size() <= 5));
+    }
+
+    match /appointments/{appointmentId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && (isValidAppointment(incoming()) || isAdmin());
+      allow update: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin()) && isValidAppointmentUpdate(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'title', 'date', 'time', 'category', 'address', 'contact', 'notes', 'reminders'])
+      );
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
+    match /admins/{userId} {
+       allow read: if isOwner(userId) || isAdmin();
+       allow write: if isAdmin();
+    }
+  }
+}

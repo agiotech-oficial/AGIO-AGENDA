@@ -1,0 +1,344 @@
+
+> ai-studio-applet@0.1.0 lint
+> eslint .
+
+
+/app/applet/app/AccountsManagementView.tsx
+   91:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  127:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/app/applet/app/AdminDashboardView.tsx
+   209:11  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+   339:7   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+   778:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+   781:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1678:22  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  2559:24  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  2722:26  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/app/applet/app/InstructionsView.tsx
+  22:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  77:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/app/applet/app/MainMenuView.tsx
+  132:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  187:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/app/applet/app/layout.tsx
+  20:9  warning  Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+  21:9  warning  Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+
+/app/applet/app/page.tsx
+   417:12  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+   498:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+   551:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1145:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1184:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1227:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1515:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1610:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  1958:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  2000:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  2351:23  error    Error: Cannot access variable before it is declared
+
+`isUserAdmin` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2351:23
+  2349 |       const expStatus = getExpirationStatus(currentUser);
+  2350 |       const isAccessExpired = (currentUser.plan === 'free' && expStatus.trialDaysRemaining <= 0) || (currentUser.plan === 'premium' && expStatus.planExpired);
+> 2351 |       const isAdmin = isUserAdmin && adminEnvMode === 'admin';
+       |                       ^^^^^^^^^^^ `isUserAdmin` accessed before it is declared
+  2352 |       const restrictedViews = ['calendar', 'dashboard', 'daily_agenda'];
+  2353 |       if (!isAdmin && isAccessExpired && restrictedViews.includes(newView)) {
+  2354 |         setIsExpirationModalOpen(true);
+
+/app/applet/app/page.tsx:2518:3
+  2516 |   }, [view]); // Add view dependency to re-eval if needed
+  2517 |
+> 2518 |   const isUserAdmin = (currentUser && (currentUser.name?.toUpperCase().includes('DALÉCIO') || currentUser.name?.toUpperCase().includes('DALECIO') || currentUser.cpf?.replace(/\D/g, '') === '10896050726')) || userName?.toUpperCase().includes('DALÉCIO') || userName?.toUpperCase().includes('DALECIO') || false;
+       |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `isUserAdmin` is declared here
+  2519 |   const isCurrentlyAdmin = isUserAdmin && adminEnvMode === 'admin';
+  2520 |   const [isAffiliateModalOpen, setIsAffiliateModalOpen] = useState(false);
+  2521 |   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);  react-hooks/immutability
+  2354:9   error    Error: Cannot access variable before it is declared
+
+`setIsExpirationModalOpen` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2354:9
+  2352 |       const restrictedViews = ['calendar', 'dashboard', 'daily_agenda'];
+  2353 |       if (!isAdmin && isAccessExpired && restrictedViews.includes(newView)) {
+> 2354 |         setIsExpirationModalOpen(true);
+       |         ^^^^^^^^^^^^^^^^^^^^^^^^ `setIsExpirationModalOpen` accessed before it is declared
+  2355 |         return;
+  2356 |       }
+  2357 |       
+
+/app/applet/app/page.tsx:2551:33
+  2549 |   const [isOptimizationModalOpen, setIsOptimizationModalOpen] = useState(false);
+  2550 |   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+> 2551 |   const [isExpirationModalOpen, setIsExpirationModalOpen] = useState(false);
+       |                                 ^^^^^^^^^^^^^^^^^^^^^^^^ `setIsExpirationModalOpen` is declared here
+  2552 |   
+  2553 |   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
+  2554 |   const [twoFactorCode, setTwoFactorCode] = useState('');                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/immutability
+  2414:27  error    Error: Cannot access variable before it is declared
+
+`setAppointments` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2414:27
+  2412 |       await signOutAuth();
+  2413 |     } catch(e) {}
+> 2414 |     setCurrentUser(null); setAppointments([]); setView('landing');
+       |                           ^^^^^^^^^^^^^^^ `setAppointments` accessed before it is declared
+  2415 |   };
+  2416 |
+  2417 |
+
+/app/applet/app/page.tsx:2545:24
+  2543 |   }, [currentUser]);
+  2544 |   
+> 2545 |   const [appointments, setAppointments] = useState<Appointment[]>([]);
+       |                        ^^^^^^^^^^^^^^^ `setAppointments` is declared here
+  2546 |   const [isModalOpen, setIsModalOpen] = useState(false);
+  2547 |   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  2548 |   const [optimizationAlert, setOptimizationAlert] = useState<{type: 'conflict' | 'proximity', message: string, dataParams: any} | null>(null);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/immutability
+  2445:6   warning  React Hook useEffect has a missing dependency: 'handleLogout'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  2489:38  error    Error: Cannot access variable before it is declared
+
+`setAppColor` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2489:38
+  2487 |               
+  2488 |               // Apply configurations from central database
+> 2489 |               if (dbUser.themeColor) setAppColor(dbUser.themeColor);
+       |                                      ^^^^^^^^^^^ `setAppColor` accessed before it is declared
+  2490 |               if (dbUser.themeBg) setAppBgImage(dbUser.themeBg);
+  2491 |               if (dbUser.soundEnabled !== null && dbUser.soundEnabled !== undefined) setSoundEnabled(dbUser.soundEnabled);
+  2492 |               if (dbUser.voiceEnabled !== null && dbUser.voiceEnabled !== undefined) setVoiceEnabled(dbUser.voiceEnabled);
+
+/app/applet/app/page.tsx:2605:20
+  2603 |   const [paymentPlan, setPaymentPlan] = useState<{name: string, price: number, originalPrice?: number, type: 'monthly' | 'semiannual' | 'annual' | 'extra_device', months?: number} | null>(null);
+  2604 |   const [mpConfig, setMpConfig] = useState({ publicKey: '', accessToken: '' });
+> 2605 |   const [appColor, setAppColor] = useState('#263E2A');
+       |                    ^^^^^^^^^^^ `setAppColor` is declared here
+  2606 |   const [appBgImage, setAppBgImage] = useState('');
+  2607 |   const [defaultReminders, setDefaultReminders] = useState<string[]>(['15m']);
+  2608 |   const [soundEnabled, setSoundEnabled] = useState(true);                                                                                                                                                                                                                                                                                                                                                react-hooks/immutability
+  2490:35  error    Error: Cannot access variable before it is declared
+
+`setAppBgImage` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2490:35
+  2488 |               // Apply configurations from central database
+  2489 |               if (dbUser.themeColor) setAppColor(dbUser.themeColor);
+> 2490 |               if (dbUser.themeBg) setAppBgImage(dbUser.themeBg);
+       |                                   ^^^^^^^^^^^^^ `setAppBgImage` accessed before it is declared
+  2491 |               if (dbUser.soundEnabled !== null && dbUser.soundEnabled !== undefined) setSoundEnabled(dbUser.soundEnabled);
+  2492 |               if (dbUser.voiceEnabled !== null && dbUser.voiceEnabled !== undefined) setVoiceEnabled(dbUser.voiceEnabled);
+  2493 |               if (dbUser.visualEdits) {
+
+/app/applet/app/page.tsx:2606:22
+  2604 |   const [mpConfig, setMpConfig] = useState({ publicKey: '', accessToken: '' });
+  2605 |   const [appColor, setAppColor] = useState('#263E2A');
+> 2606 |   const [appBgImage, setAppBgImage] = useState('');
+       |                      ^^^^^^^^^^^^^ `setAppBgImage` is declared here
+  2607 |   const [defaultReminders, setDefaultReminders] = useState<string[]>(['15m']);
+  2608 |   const [soundEnabled, setSoundEnabled] = useState(true);
+  2609 |   const [voiceEnabled, setVoiceEnabled] = useState(false);                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/immutability
+  2491:86  error    Error: Cannot access variable before it is declared
+
+`setSoundEnabled` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2491:86
+  2489 |               if (dbUser.themeColor) setAppColor(dbUser.themeColor);
+  2490 |               if (dbUser.themeBg) setAppBgImage(dbUser.themeBg);
+> 2491 |               if (dbUser.soundEnabled !== null && dbUser.soundEnabled !== undefined) setSoundEnabled(dbUser.soundEnabled);
+       |                                                                                      ^^^^^^^^^^^^^^^ `setSoundEnabled` accessed before it is declared
+  2492 |               if (dbUser.voiceEnabled !== null && dbUser.voiceEnabled !== undefined) setVoiceEnabled(dbUser.voiceEnabled);
+  2493 |               if (dbUser.visualEdits) {
+  2494 |                 try {
+
+/app/applet/app/page.tsx:2608:24
+  2606 |   const [appBgImage, setAppBgImage] = useState('');
+  2607 |   const [defaultReminders, setDefaultReminders] = useState<string[]>(['15m']);
+> 2608 |   const [soundEnabled, setSoundEnabled] = useState(true);
+       |                        ^^^^^^^^^^^^^^^ `setSoundEnabled` is declared here
+  2609 |   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  2610 |   const [directCommissionPct, setDirectCommissionPct] = useState('20%');
+  2611 |   const [indirectCommissionPct, setIndirectCommissionPct] = useState('10%');                                                                                                                                                                                                                                                                                                                                                                                                              react-hooks/immutability
+  2492:86  error    Error: Cannot access variable before it is declared
+
+`setVoiceEnabled` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2492:86
+  2490 |               if (dbUser.themeBg) setAppBgImage(dbUser.themeBg);
+  2491 |               if (dbUser.soundEnabled !== null && dbUser.soundEnabled !== undefined) setSoundEnabled(dbUser.soundEnabled);
+> 2492 |               if (dbUser.voiceEnabled !== null && dbUser.voiceEnabled !== undefined) setVoiceEnabled(dbUser.voiceEnabled);
+       |                                                                                      ^^^^^^^^^^^^^^^ `setVoiceEnabled` accessed before it is declared
+  2493 |               if (dbUser.visualEdits) {
+  2494 |                 try {
+  2495 |                   setVisualEdits(JSON.parse(dbUser.visualEdits));
+
+/app/applet/app/page.tsx:2609:24
+  2607 |   const [defaultReminders, setDefaultReminders] = useState<string[]>(['15m']);
+  2608 |   const [soundEnabled, setSoundEnabled] = useState(true);
+> 2609 |   const [voiceEnabled, setVoiceEnabled] = useState(false);
+       |                        ^^^^^^^^^^^^^^^ `setVoiceEnabled` is declared here
+  2610 |   const [directCommissionPct, setDirectCommissionPct] = useState('20%');
+  2611 |   const [indirectCommissionPct, setIndirectCommissionPct] = useState('10%');
+  2612 |   const [directCommissionMonths, setDirectCommissionMonths] = useState(12);                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/immutability
+  2495:19  error    Error: Cannot access variable before it is declared
+
+`setVisualEdits` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2495:19
+  2493 |               if (dbUser.visualEdits) {
+  2494 |                 try {
+> 2495 |                   setVisualEdits(JSON.parse(dbUser.visualEdits));
+       |                   ^^^^^^^^^^^^^^ `setVisualEdits` accessed before it is declared
+  2496 |                 } catch (e) {
+  2497 |                   console.error("Erro ao carregar visualEdits", e);
+  2498 |                 }
+
+/app/applet/app/page.tsx:2617:23
+  2615 |   
+  2616 |   const [isVisualEditorActive, setIsVisualEditorActive] = useState(false);
+> 2617 |   const [visualEdits, setVisualEdits] = useState<Record<string, any>>({});
+       |                       ^^^^^^^^^^^^^^ `setVisualEdits` is declared here
+  2618 |   const [visualEditorTarget, setVisualEditorTarget] = useState<any>(null);
+  2619 |   const [visualUndoStack, setVisualUndoStack] = useState<Record<string, any>[]>([]);
+  2620 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/immutability
+  2516:6   warning  React Hook useEffect has a missing dependency: 'setView'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  2649:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  2657:9   error    Error: Cannot access variable before it is declared
+
+`handleUpdateUserData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/app/applet/app/page.tsx:2657:9
+  2655 |       localStorage.setItem('agenda_visual_edits', JSON.stringify(visualEdits));
+  2656 |       if (currentUser && currentUser.visualEdits !== JSON.stringify(visualEdits)) {
+> 2657 |         handleUpdateUserData({ visualEdits: JSON.stringify(visualEdits) });
+       |         ^^^^^^^^^^^^^^^^^^^^ `handleUpdateUserData` accessed before it is declared
+  2658 |       }
+  2659 |     }
+  2660 |   }, [visualEdits, currentUser]);
+
+/app/applet/app/page.tsx:2822:3
+  2820 |   }, [isSubscriptionModalOpen, currentUser]);
+  2821 |
+> 2822 |   const handleUpdateUserData = async (changes: Partial<AffiliateUser>) => {
+       |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2823 |     if (!currentUser) return;
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2824 |     const updatedUser = { ...currentUser, ...changes };
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2845 |     }
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2846 |   };
+       | ^^^^^ `handleUpdateUserData` is declared here
+  2847 |
+  2848 |   const loadSettings = useCallback(async () => {
+  2849 |     // 1. Check local storage first for immediate render                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/immutability
+  2660:6   warning  React Hook useEffect has a missing dependency: 'handleUpdateUserData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  2670:6   warning  React Hook useEffect has a missing dependency: 'handleUpdateUserData'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  2848:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setAppColor`, but the source dependencies were []. Inferred dependency not present in source.
+
+/app/applet/app/page.tsx:2848:36
+  2846 |   };
+  2847 |
+> 2848 |   const loadSettings = useCallback(async () => {
+       |                                    ^^^^^^^^^^^^^
+> 2849 |     // 1. Check local storage first for immediate render
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2850 |     let settingsStr = localStorage.getItem('agenda_settings');
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2919 |       }).catch(err => console.error("Error fetching payment env fallback:", err));
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2920 |   }, []);
+       | ^^^^ Could not preserve existing manual memoization
+  2921 |
+  2922 |   useEffect(() => {
+  2923 |     loadSettings();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/preserve-manual-memoization
+  2848:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setAppBgImage`, but the source dependencies were []. Inferred dependency not present in source.
+
+/app/applet/app/page.tsx:2848:36
+  2846 |   };
+  2847 |
+> 2848 |   const loadSettings = useCallback(async () => {
+       |                                    ^^^^^^^^^^^^^
+> 2849 |     // 1. Check local storage first for immediate render
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2850 |     let settingsStr = localStorage.getItem('agenda_settings');
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2919 |       }).catch(err => console.error("Error fetching payment env fallback:", err));
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2920 |   }, []);
+       | ^^^^ Could not preserve existing manual memoization
+  2921 |
+  2922 |   useEffect(() => {
+  2923 |     loadSettings();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/preserve-manual-memoization
+  2848:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setSoundEnabled`, but the source dependencies were []. Inferred dependency not present in source.
+
+/app/applet/app/page.tsx:2848:36
+  2846 |   };
+  2847 |
+> 2848 |   const loadSettings = useCallback(async () => {
+       |                                    ^^^^^^^^^^^^^
+> 2849 |     // 1. Check local storage first for immediate render
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2850 |     let settingsStr = localStorage.getItem('agenda_settings');
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2919 |       }).catch(err => console.error("Error fetching payment env fallback:", err));
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2920 |   }, []);
+       | ^^^^ Could not preserve existing manual memoization
+  2921 |
+  2922 |   useEffect(() => {
+  2923 |     loadSettings();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/preserve-manual-memoization
+  2848:36  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setVoiceEnabled`, but the source dependencies were []. Inferred dependency not present in source.
+
+/app/applet/app/page.tsx:2848:36
+  2846 |   };
+  2847 |
+> 2848 |   const loadSettings = useCallback(async () => {
+       |                                    ^^^^^^^^^^^^^
+> 2849 |     // 1. Check local storage first for immediate render
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2850 |     let settingsStr = localStorage.getItem('agenda_settings');
+       …
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2919 |       }).catch(err => console.error("Error fetching payment env fallback:", err));
+       | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 2920 |   }, []);
+       | ^^^^ Could not preserve existing manual memoization
+  2921 |
+  2922 |   useEffect(() => {
+  2923 |     loadSettings();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/preserve-manual-memoization
+  3216:9   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  4818:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  4969:26  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  5332:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+  5899:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @next/next/no-img-element
+
+/app/applet/components/LanguageSelector.tsx
+  73:9   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  84:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/app/applet/firestore.rules
+  25:8  warning  Insecure open read rule detected. Warn on open reads in production  @firebase/security-rules/no-open-reads
+
+✖ 51 problems (13 errors, 38 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+

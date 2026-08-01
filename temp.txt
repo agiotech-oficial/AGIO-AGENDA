@@ -1,0 +1,123 @@
+
+      {/* Commission Rules Modal */}
+      <div className={`fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-opacity duration-200 ${selectedCommissionDetail ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`bg-[#06402B] border border-white/20 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col text-left transition-transform duration-200 ${selectedCommissionDetail ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
+          <div className="p-6 flex flex-col gap-5">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'bg-green-500/10 border-green-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+                  <span className={`material-symbols-outlined text-[32px] ${selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'text-green-400' : 'text-blue-400'}`}>
+                    {selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'payments' : 'account_tree'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-white leading-tight relative">
+                    <span className={selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'inline' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}>Regras de Comissão Direta</span>
+                    <span className={selectedCommissionDetail === 'indireta' ? 'inline' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}>Regras de Comissão Indireta</span>
+                  </h3>
+                  <p className={`text-sm font-bold mt-0.5 relative ${selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'text-green-400' : 'text-blue-400'}`}>
+                    <span className={selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'inline' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}>Receba {directCommissionPct} de comissão recorrente</span>
+                    <span className={selectedCommissionDetail === 'indireta' ? 'inline' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}>Receba {indirectCommissionPct} de comissão recorrente</span>
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedCommissionDetail(null)} 
+                className="text-white/60 hover:text-white bg-white/5 hover:bg-white/10 p-1.5 rounded-lg transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="h-px bg-white/10 w-full"></div>
+
+            <div className="relative">
+              <h4 className="text-xs font-black uppercase tracking-wider text-white/50 mb-3">Como funciona o ganho:</h4>
+              <div className="flex flex-col gap-4">
+                {/* Direta Content */}
+                <div className={`flex-col gap-4 ${selectedCommissionDetail === 'direta' || !selectedCommissionDetail ? 'flex relative' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}`}>
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-green-400 text-[24px] mt-0.5 shrink-0">link</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Indicação Direta</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        Quando um usuário se cadastra e efetua a contratação do plano de assinatura utilizando diretamente o seu link exclusivo de afiliado.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-green-400 text-[24px] mt-0.5 shrink-0">history</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Ganho Recorrente Mensal</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        Você ganha {directCommissionPct} de cada parcela paga pelo seu indicado durante o período elegível. Se ele pagar mensalmente, você recebe todo mês! OBS: No período de comissionamento, caso o usuário indicado pelo afiliado fique inadimplente a comissão é suspensa até que o indicado realize o pagamento. No caso em que o usuário indicado cancele o plano de assinatura, a comissão por sua vez também será cancelada.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-green-400 text-[24px] mt-0.5 shrink-0">calendar_today</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Duração dos Ganhos ({directCommissionMonths} meses)</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        A comissão direta permanece ativa pelos primeiros {directCommissionMonths} meses da contratação do plano de assinatura do usuário indicado.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Indireta Content */}
+                <div className={`flex-col gap-4 ${selectedCommissionDetail === 'indireta' ? 'flex relative' : 'opacity-0 absolute h-0 overflow-hidden pointer-events-none'}`}>
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-blue-400 text-[24px] mt-0.5 shrink-0">group</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Indicação por sua Rede</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        Quando as pessoas que você indicou (afiliados diretos) convidam novos assinantes. Você também ganha sobre o trabalho da sua rede direta de afiliados!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-blue-400 text-[24px] mt-0.5 shrink-0">autorenew</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Ganho Recorrente Indireto</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        Você ganha {indirectCommissionPct} sobre os pagamentos de cada parcela dos indicados de 2º nível, durante o período elegível, gerados pela sua rede de afiliados diretos. Se o usuário indicado pelo seu afiliado direto pagar mensalmente, você recebe todo mês! OBS: No período de comissionamento, caso o usuário indicado pelo seu afiliado direto fique inadimplente a comissão é automaticamente suspensa até que seja realizado o pagamento. No caso em que o usuário indicado pelo seu afiliado direto cancele o plano de assinatura, o pagamento da comissão por sua vez será automaticamente cancelada.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-blue-400 text-[24px] mt-0.5 shrink-0">hourglass_empty</span>
+                    <div>
+                      <p className="text-sm font-black text-white leading-tight">Duração dos Ganhos ({indirectCommissionMonths} meses)</p>
+                      <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                        A comissão indireta permanece ativa pelos primeiros {indirectCommissionMonths} meses de contratação do plano de assinatura de cada usuário indicado indiretamente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors mt-2">
+                  <span className="material-symbols-outlined text-amber-400 text-[24px] mt-0.5 shrink-0">account_balance_wallet</span>
+                  <div>
+                    <p className="text-sm font-black text-white leading-tight">Pagamento e Saques via PIX</p>
+                    <p className="text-xs text-white/70 mt-1 leading-relaxed">
+                      Os valores acumulados ficam visíveis no seu Painel de Afiliado. Os saques podem ser solicitados quinzenalmente (dias 1 e 16 de cada mês) e são transferidos por PIX diretamente na conta bancária vinculada ao seu CPF cadastrado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-white/10 w-full mt-2"></div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-1 bg-primary/10 p-4 rounded-xl border border-primary/20">
+              <p className="text-xs text-white/80 leading-relaxed font-medium">Torne-se um afiliado de sucesso convidando amigos e profissionais para a nossa plataforma!</p>
+              <button 
+                onClick={() => {
+                  setSelectedCommissionDetail(null);
+                  const nameInput = document.getElementById('name');
+                  if (nameInput) {

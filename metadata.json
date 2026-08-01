@@ -1,0 +1,11 @@
+{
+  "name": "Remix Remix ágio agenda ",
+  "description": "Sistema SPA de agenda inteligente estruturado no ecossistema Stitch.",
+  "requestFramePermissions": [
+    "publickey-credentials-create",
+    "publickey-credentials-get"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

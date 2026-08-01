@@ -1,0 +1,100 @@
+{
+    "entities": {
+      "user": {
+        "title": "User",
+        "description": "Represents an authenticated user in the system.",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "whatsapp": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "Referral path storing ancestor and parent IDs."
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["free", "premium"]
+          },
+          "commissions": {
+            "type": "number"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["email", "createdAt"]
+      },
+      "appointment": {
+        "title": "Appointment",
+        "description": "An appointment scheduled by the user.",
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The ID of the user who owns this appointment."
+          },
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Trabalho", "Pessoal", "Urgente"]
+          },
+          "address": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminders": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "createdAt": {
+             "type": "string",
+             "format": "date-time"
+          },
+          "updatedAt": {
+             "type": "string",
+             "format": "date-time"
+          }
+        },
+        "required": ["userId", "title", "date", "time", "category"]
+      }
+    },
+    "firestore": {
+      "users/{userId}": {
+        "schema": "#/entities/user",
+        "description": "A collection per user holding profile data."
+      },
+      "appointments/{appointmentId}": {
+        "schema": "#/entities/appointment",
+        "description": "A top-level collection for all appointments."
+      }
+    }
+  }

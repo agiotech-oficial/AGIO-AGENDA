@@ -1,0 +1,61 @@
+--- app/MainMenuView.tsx
++++ app/MainMenuView.tsx
+@@ -128,5 +128,45 @@
+       {/* TopAppBar */}
+       <header className="bg-brand sticky w-full top-0 z-50 flex justify-between items-center px-5 py-2 shadow-sm relative">
+-        <TouchButton onTap={() => onNavigate('main_menu')} className="flex items-center z-10 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none">
+-          <img alt="Ágio Ícone" className="w-[36px] h-[36px] object-contain rounded-full overflow-hidden" src="/2zguve.png" />
+-        </TouchButton>
++        <div className="relative flex items-center z-50 cursor-pointer">
++          <img 
++            alt="Ágio Ícone" 
++            className="w-[36px] h-[36px] object-contain rounded-full overflow-hidden hover:opacity-80 transition-opacity" 
++            src="/2zguve.png" 
++            onClick={() => setIsLogoMenuOpen(!isLogoMenuOpen)}
++          />
++          {isLogoMenuOpen && (
++            <>
++              <div 
++                className="fixed inset-0 z-40 bg-transparent cursor-default" 
++                onClick={(e) => {
++                  e.stopPropagation();
++                  setIsLogoMenuOpen(false);
++                }}
++              />
++              <div className="absolute left-0 top-10 w-56 bg-surface-container-high border border-outline-variant rounded-xl shadow-2xl overflow-hidden flex flex-col p-2 gap-1 z-50 text-left cursor-default" onClick={(e) => e.stopPropagation()}>
++                <button onClick={() => { onNavigate('calendar'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">calendar_month</span> Calendário
++                </button>
++                <button onClick={() => { onNavigate('daily_agenda'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">view_day</span> Agenda Diária
++                </button>
++                <button onClick={() => { onNavigate('dashboard'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">dashboard</span> Dashboard
++                </button>
++                <button onClick={() => { onOpenAffiliate(); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">groups</span> Minha Rede
++                </button>
++                <button onClick={() => { onOpenProfile(); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">account_circle</span> Perfil
++                </button>
++                <button onClick={() => { if (onOpenSupport) onOpenSupport(); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">support_agent</span> Ajuda & Suporte
++                </button>
++                {isAdmin && (
++                  <button onClick={() => { onNavigate('admin'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                    <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span> Admin
++                  </button>
++                )}
++                <button onClick={() => { onNavigate('instructions'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                  <span className="material-symbols-outlined text-[20px]">menu_book</span> Instruções de uso
++                </button>
++                {(!currentUser || isAdmin) && (
++                  <button onClick={() => { onNavigate('landing'); setIsLogoMenuOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-on-surface hover:border-primary hover:bg-surface-container-highest">
++                    <span className="material-symbols-outlined text-[20px]">person_add</span> Cadastro
++                  </button>
++                )}
++              </div>
++            </>
++          )}
++        </div>
+         <TouchButton onTap={() => onNavigate('main_menu')} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer hover:opacity-80 transition-opacity focus:outline-none">
