@@ -1,0 +1,12 @@
+[
+  {
+    "id": "test_uid_123",
+    "createdAt": "2026-07-30T18:15:04.046Z",
+    "firebaseUid": "test_uid_123",
+    "name": "Dalécio L. Macedo",
+    "email": "agiotech.oficial@gmail.com",
+    "whatsapp": "11999999999",
+    "cpf": "10896050726",
+    "plan": "premium"
+  }
+]

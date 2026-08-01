@@ -1,0 +1,23 @@
+{
+  "name": "Ágio Agenda",
+  "short_name": "Ágio",
+  "description": "Eficiência e PWA na palma da mão.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#A020F0",
+  "theme_color": "#A020F0",
+  "icons": [
+    {
+      "src": "/33icon-agenda%20%C3%A1gio%20.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/33icon-agenda%20%C3%A1gio%20.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
