@@ -177,8 +177,8 @@ export function InstructionsView({ onNavigate, onOpenProfile, onOpenAffiliate, o
                 {isEs ? 'Una vista consolidada con la Otimización Logística de citas, creación y procesamiento de tareas con IA.' : isEn ? 'A consolidated view with Logistics Optimization for appointments, task creation, and AI processing.' : 'Uma visão consolidada com a Otimização Logística de compromissos, criação e processamento de tarefas com IA.'}
               </li>
               <li>
-                <strong>{isEs ? 'Gestión de Cuentas' : isEn ? 'Account Management' : 'Gestão de Contas'}:</strong>{' '}
-                {isEs ? 'Control financiero para gestionar cuentas por pagar, por cobrar, flujo de caja y metas.' : isEn ? 'Financial control to manage payables, receivables, cash flow, and goals.' : 'Controle financeiro para gerenciar contas a pagar, a receber, fluxo de caixa e metas.'}
+                <strong>{isEs ? 'Gestión de Cuentas & Formato de Valores' : isEn ? 'Account Management & Currency Formatting' : 'Gestão de Contas & Formatação Automática de Valores'}:</strong>{' '}
+                {isEs ? 'Control financiero para gestionar cuentas por pagar, por cobrar, flujo de caja. Al ingresar montos en "Nova Conta" o "Novo Compromisso", el sistema reconoce y aplica automáticamente la separación de miles por punto (.) y centavos por coma (,) (p. ej. R$ 1.558,92).' : isEn ? 'Financial control for payables, receivables, and cash flow. When typing amounts in "New Account" or "New Event", the system automatically formats thousands separators with dots (.) and cents with commas (,) (e.g. R$ 1.558,92).' : 'Controle financeiro para gerenciar contas a pagar, a receber, fluxo de caixa e metas. Ao digitar valores em "Nova Conta", "Novo Compromisso" ou alterar preços, o sistema reconhece e aplica automaticamente a separação de milhares por ponto (.) e centavos por vírgula (,) (ex: R$ 1.558,92).'}
               </li>
               <li>
                 <strong>{isEs ? 'Mi Red' : isEn ? 'My Network' : 'Minha Rede'}:</strong>{' '}

@@ -60,6 +60,7 @@ interface AffiliateViewProps {
   directCommissionMonths: number;
   indirectCommissionMonths: number;
   automaticCommissionPayment: boolean;
+  affiliateSpotsOpen?: boolean;
   onOpenProfile: () => void;
   onOpenSupport?: () => void;
   onOpenSubscription?: () => void;
@@ -116,6 +117,7 @@ export function AffiliateView({
   directCommissionMonths,
   indirectCommissionMonths,
   automaticCommissionPayment,
+  affiliateSpotsOpen = true,
   onOpenProfile,
   onOpenSupport,
   onOpenSubscription,
@@ -230,22 +232,38 @@ export function AffiliateView({
                 <li className="mt-3"><strong className="text-white text-base md:text-xl">{indirectCommissionPct} de comissão indireta</strong><br /><span className="text-white font-semibold">por {indirectCommissionMonths} meses se sua rede indicar alguém.</span></li>
                 <li className="mt-4"><strong className="text-white">Saque via PIX {automaticCommissionPayment ? 'automático' : 'manual'}:</strong> A comissão ficará disponível a cada 15 dias (dias 1 e 16 de cada mês), {automaticCommissionPayment ? 'enviada automaticamente' : 'e o pagamento deverá ser solicitado pelo aplicativo, sendo enviado'} exclusivamente para a conta bancária do mesmo titular (Nome e CPF idênticos).</li>
               </ul>
-              <button
-                onClick={() => {
-                  const updatedUser = { ...currentUser, isAffiliate: true };
-                  const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
-                  const userIndex = storedUsers.findIndex((u: any) => u.id === currentUser.id);
-                  if (userIndex !== -1) {
-                    storedUsers[userIndex] = updatedUser;
-                    localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
-                  }
-                  setCurrentUser(updatedUser);
-                  alert('Bem-vindo ao Programa de Afiliados!');
-                }}
-                className="w-full max-w-md bg-white text-black hover:-translate-y-0.5 hover:shadow-lg py-3.5 rounded-xl font-bold text-base transition-all active:scale-95 cursor-pointer"
-              >
-                Aderir Gratuitamente
-              </button>
+              {affiliateSpotsOpen ? (
+                <button
+                  onClick={() => {
+                    const updatedUser = { ...currentUser, isAffiliate: true };
+                    const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+                    const userIndex = storedUsers.findIndex((u: any) => u.id === currentUser.id);
+                    if (userIndex !== -1) {
+                      storedUsers[userIndex] = updatedUser;
+                      localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
+                    }
+                    setCurrentUser(updatedUser);
+                    alert('Bem-vindo ao Programa de Afiliados!');
+                  }}
+                  className="w-full max-w-md bg-white text-black hover:-translate-y-0.5 hover:shadow-lg py-3.5 rounded-xl font-bold text-base transition-all active:scale-95 cursor-pointer"
+                >
+                  Aderir Gratuitamente
+                </button>
+              ) : (
+                <div className="w-full max-w-md bg-amber-500/20 border border-amber-400/40 p-5 rounded-2xl text-center flex flex-col items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-300 text-4xl">no_accounts</span>
+                  <p className="font-bold text-amber-200 text-base">Vagas para Afiliados Indisponíveis</p>
+                  <p className="text-xs text-amber-100/90 leading-relaxed">
+                    As vagas para se inscrever como novo afiliado estão temporariamente esgotadas. Entre em contato com o suporte ou aguarde a abertura de novas vagas.
+                  </p>
+                  <button
+                    disabled
+                    className="w-full mt-2 bg-white/10 text-white/50 py-3 rounded-xl font-bold text-sm cursor-not-allowed border border-white/10"
+                  >
+                    Inscrições Indisponíveis
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <>

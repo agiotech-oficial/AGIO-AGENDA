@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavigationBar } from '../components/NavigationBar';
 import { ResourceUsageDashboard } from '../components/ResourceUsageDashboard';
 import { TouchButton } from './MainMenuView';
+import { CurrencyInput } from '../components/CurrencyInput';
 
 const generateBackupData = (type: 'complete' | 'system') => {
   const allSettings = typeof window !== 'undefined' ? (localStorage.getItem('agenda_settings') || '{}') : '{}';
@@ -147,6 +148,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
   const [resendFromEmail, setResendFromEmail] = useState('');
   const [enable2FA, setEnable2FA] = useState(false);
   const [automaticCommissionPayment, setAutomaticCommissionPayment] = useState(false);
+  const [affiliateSpotsOpen, setAffiliateSpotsOpen] = useState(true);
 
   // States for automatic backup scheduler
   const [backupScheduleEnabled, setBackupScheduleEnabled] = useState(false);
@@ -265,6 +267,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
           if (settings.resendFromEmail) setResendFromEmail(settings.resendFromEmail);
           if (settings.enable2FA !== undefined) setEnable2FA(settings.enable2FA);
           if (settings.automaticCommissionPayment !== undefined) setAutomaticCommissionPayment(settings.automaticCommissionPayment);
+          if (settings.affiliateSpotsOpen !== undefined) setAffiliateSpotsOpen(settings.affiliateSpotsOpen);
           if (settings.backupScheduleEnabled !== undefined) setBackupScheduleEnabled(settings.backupScheduleEnabled);
           if (settings.backupScheduleFrequency) setBackupScheduleFrequency(settings.backupScheduleFrequency);
           if (settings.backupScheduleType) setBackupScheduleType(settings.backupScheduleType);
@@ -301,6 +304,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
           if (settings.resendFromEmail) setResendFromEmail(settings.resendFromEmail);
           if (settings.enable2FA !== undefined) setEnable2FA(settings.enable2FA);
           if (settings.automaticCommissionPayment !== undefined) setAutomaticCommissionPayment(settings.automaticCommissionPayment);
+          if (settings.affiliateSpotsOpen !== undefined) setAffiliateSpotsOpen(settings.affiliateSpotsOpen);
           if (settings.backupScheduleEnabled !== undefined) setBackupScheduleEnabled(settings.backupScheduleEnabled);
           if (settings.backupScheduleFrequency) setBackupScheduleFrequency(settings.backupScheduleFrequency);
           if (settings.backupScheduleType) setBackupScheduleType(settings.backupScheduleType);
@@ -498,6 +502,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
       resendFromEmail,
       enable2FA,
       automaticCommissionPayment,
+      affiliateSpotsOpen,
       backupScheduleEnabled,
       backupScheduleFrequency,
       backupScheduleType,
@@ -1752,6 +1757,40 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
                       </tbody>
                     </table>
                   )}
+                </div>
+              </div>
+
+              {/* Disponibilidade de Vagas para Afiliados */}
+              <div className="bg-white rounded-xl p-5 border border-[#e5e7eb] shadow-sm flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`material-symbols-outlined text-[32px] ${affiliateSpotsOpen ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+                      {affiliateSpotsOpen ? 'group_add' : 'person_off'}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-[#111827] text-base">Disponibilidade de Vagas para Afiliados</h4>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${affiliateSpotsOpen ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
+                          {affiliateSpotsOpen ? 'Vagas Abertas' : 'Vagas Esgotadas'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#6b7280] mt-1">
+                        Ative ou desative a abertura de vagas para novos usuários se inscreverem no Programa de Afiliados.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center cursor-pointer ml-4 shrink-0">
+                    <div className="relative">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only" 
+                        checked={affiliateSpotsOpen} 
+                        onChange={(e) => setAffiliateSpotsOpen(e.target.checked)} 
+                      />
+                      <div className={`block w-12 h-7 rounded-full transition-colors ${affiliateSpotsOpen ? 'bg-[#16a34a]' : 'bg-[#dc2626]'}`}></div>
+                      <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform border border-[#d1d5db] ${affiliateSpotsOpen ? 'transform translate-x-5' : ''}`}></div>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -3330,7 +3369,13 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
                       <p className="font-medium text-sm">Preço Plano Mensal (R$)</p>
                       <p className="text-xs text-[#6b7280]">Valor cobrado por mês (Plano Padrão)</p>
                     </div>
-                    <input type="number" step="0.01" value={monthlyPrice} onChange={(e) => setMonthlyPrice(e.target.value)} className="w-24 text-center rounded border border-[#d1d5db] py-1 bg-white text-[#111827]" />
+                    <CurrencyInput 
+                      value={parseFloat(monthlyPrice) || 0} 
+                      onChange={(numVal) => setMonthlyPrice(numVal.toString())} 
+                      className="w-28 text-center rounded border border-[#d1d5db] py-1 px-2 bg-white text-[#111827] font-bold text-sm" 
+                      showSymbol={true}
+                      placeholder="9,90"
+                    />
                   </div>
                 </div>
 

@@ -17,12 +17,14 @@ import { ProfileView } from './ProfileView';
 import { SubscriptionView } from './SubscriptionView';
 import { VirtualMeetingRoom } from '../components/VirtualMeetingRoom';
 import { SupportModal } from '../components/SupportModal';
+import { PwaSplashScreen } from '../components/PwaSplashScreen';
 import { InstructionsModal } from '../components/InstructionsModal';
 import { LanguageSelector } from '../components/LanguageSelector';
 import { NavigationBar } from '../components/NavigationBar';
 import { AutoUpdater } from '../components/AutoUpdater';
 import nextDynamic from 'next/dynamic';
 import { AffiliateLeads } from '../components/AffiliateLeads';
+import { CurrencyInput } from '../components/CurrencyInput';
 
 const Payment = nextDynamic(
   () => import('@mercadopago/sdk-react').then((mod) => mod.Payment),
@@ -122,7 +124,7 @@ Contato: ${app.contact}`;
   window.open(gcalUrl, '_blank');
 };
 
-function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemModules, directCommissionPct, indirectCommissionPct, directCommissionMonths, indirectCommissionMonths, onOpenSupport, onOpenAffiliate, onOpenProfile, currentUser }: { onNavigate: (view: string) => void, onLogin: (name: string, whatsapp: string, isAffiliateOptIn: boolean, email?: string, cpf?: string, city?: string, state?: string, country?: string, password?: string) => void, onGoogleLogin: (isAffiliateOptIn: boolean) => void, systemPrices: { monthly: number, semiannual: number, annual: number }, systemModules?: any[], directCommissionPct: string, indirectCommissionPct: string, directCommissionMonths: number, indirectCommissionMonths: number, onOpenSupport: () => void, onOpenAffiliate: () => void, onOpenProfile: () => void, currentUser?: any }) {
+function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemModules, directCommissionPct, indirectCommissionPct, directCommissionMonths, indirectCommissionMonths, affiliateSpotsOpen = true, onOpenSupport, onOpenAffiliate, onOpenProfile, currentUser }: { onNavigate: (view: string) => void, onLogin: (name: string, whatsapp: string, isAffiliateOptIn: boolean, email?: string, cpf?: string, city?: string, state?: string, country?: string, password?: string) => void, onGoogleLogin: (isAffiliateOptIn: boolean) => void, systemPrices: { monthly: number, semiannual: number, annual: number }, systemModules?: any[], directCommissionPct: string, indirectCommissionPct: string, directCommissionMonths: number, indirectCommissionMonths: number, affiliateSpotsOpen?: boolean, onOpenSupport: () => void, onOpenAffiliate: () => void, onOpenProfile: () => void, currentUser?: any }) {
   const [name, setName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -543,14 +545,6 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
       <header className="relative flex justify-between items-center w-full px-container-padding py-stack-md bg-[#263E2A] shadow-lg sticky top-0 z-50">
         <div className="flex items-center z-10 flex-1 justify-start gap-2">
           <LanguageSelector />
-          <button
-            onClick={() => window.open(window.location.href, '_blank', 'noopener,noreferrer')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold transition-all active:scale-95 shadow-sm cursor-pointer"
-            title="Abrir em nova aba (Desenvolvimento)"
-          >
-            <span className="material-symbols-outlined text-[16px] notranslate" translate="no">open_in_new</span>
-            <span className="hidden sm:inline">Nova Aba</span>
-          </button>
         </div>
         <div className="flex items-center justify-center z-0 shrink-0 mx-2">
            <img alt="Sistema Ágio" style={{ mixBlendMode: 'multiply' }} className="w-auto object-contain h-[36px] sm:h-[40px] md:h-[61px] drop-shadow-[0_1px_2px_rgba(255,255,255,0.2)] rounded-2xl overflow-hidden" src="/399-agenda%20%C3%A1gio.png" />
@@ -904,12 +898,19 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                   Eu aceito os <a className="text-white font-bold hover:underline" href="#">Termos de Uso</a> e a <a className="text-white font-bold hover:underline" href="#">Política de Privacidade</a>.
                 </label>
               </div>
-              <div className="flex items-start gap-3 mt-1">
-                <input className="mt-1 rounded border-white/20 bg-white/10 text-primary focus:ring-primary" id="affiliate" type="checkbox" checked={isAffiliateOptIn} onChange={(e) => setIsAffiliateOptIn(e.target.checked)} disabled={isSubmitting} />
-                <label className="text-label-sm font-label-sm text-white leading-tight" htmlFor="affiliate">
-                  Quero participar gratuitamente do <span className="text-white font-bold">Programa de Afiliados</span> e faturar indicando o app.
-                </label>
-              </div>
+              {affiliateSpotsOpen ? (
+                <div className="flex items-start gap-3 mt-1">
+                  <input className="mt-1 rounded border-white/20 bg-white/10 text-primary focus:ring-primary" id="affiliate" type="checkbox" checked={isAffiliateOptIn} onChange={(e) => setIsAffiliateOptIn(e.target.checked)} disabled={isSubmitting} />
+                  <label className="text-label-sm font-label-sm text-white leading-tight" htmlFor="affiliate">
+                    Quero participar gratuitamente do <span className="text-white font-bold">Programa de Afiliados</span> e faturar indicando o app.
+                  </label>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mt-2 p-2.5 rounded-lg bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs">
+                  <span className="material-symbols-outlined text-sm shrink-0">info</span>
+                  <span>Inscrições para o Programa de Afiliados temporariamente esgotadas.</span>
+                </div>
+              )}
               
               <button 
                 className="w-full bg-primary text-on-primary-fixed py-4 px-6 rounded-xl font-title-md text-title-md flex justify-center items-center gap-2 hover:bg-white hover:text-surface-container active:scale-[0.98] transition-all mt-4 shadow-lg disabled:opacity-70 disabled:cursor-not-allowed" 
@@ -3745,6 +3746,7 @@ export default function AgendaApp() {
   const [directCommissionMonths, setDirectCommissionMonths] = useState(12);
   const [indirectCommissionMonths, setIndirectCommissionMonths] = useState(12);
   const [automaticCommissionPayment, setAutomaticCommissionPayment] = useState(false);
+  const [affiliateSpotsOpen, setAffiliateSpotsOpen] = useState(true);
   
   const [isVisualEditorActive, setIsVisualEditorActive] = useState(false);
   const [visualEdits, setVisualEdits] = useState<Record<string, any>>({});
@@ -4008,6 +4010,7 @@ export default function AgendaApp() {
       if (s.directCommissionMonths) setDirectCommissionMonths(parseInt(s.directCommissionMonths));
       if (s.indirectCommissionMonths) setIndirectCommissionMonths(parseInt(s.indirectCommissionMonths));
       if (s.automaticCommissionPayment !== undefined) setAutomaticCommissionPayment(s.automaticCommissionPayment);
+      if (s.affiliateSpotsOpen !== undefined) setAffiliateSpotsOpen(s.affiliateSpotsOpen);
     };
 
     if (Object.keys(settings).length > 0) {
@@ -5648,7 +5651,7 @@ ${notesDraft}`;
       `}</style>
       
       <div suppressHydrationWarning className={isAnyModalActive ? "pointer-events-none select-none opacity-40 transition-all duration-300 filter blur-[0.5px]" : "transition-all duration-300"}>
-        {view === 'landing' && <LandingView onNavigate={setView} currentUser={currentUser} onLogin={handleUserLogin} onGoogleLogin={handleGoogleLogin} systemPrices={systemPrices} systemModules={systemModules} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenAffiliate={() => setView('affiliate')} onOpenProfile={() => setView('profile')} />}
+        {view === 'landing' && <LandingView onNavigate={setView} currentUser={currentUser} onLogin={handleUserLogin} onGoogleLogin={handleGoogleLogin} systemPrices={systemPrices} systemModules={systemModules} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} affiliateSpotsOpen={affiliateSpotsOpen} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenAffiliate={() => setView('affiliate')} onOpenProfile={() => setView('profile')} />}
         
         {view === 'main_menu' && <MainMenuView onNavigate={setView} onOpenProfile={() => setView('profile')} onOpenAffiliate={() => setView('affiliate')} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} onLogout={() => handleLogout()} userName={userName} currentUser={currentUser} isAccessExpired={currentUser ? ((currentUser.plan === 'free' && getExpirationStatus(currentUser).trialDaysRemaining <= 0) || (currentUser.plan === 'premium' && getExpirationStatus(currentUser).planExpired)) : false} isAdmin={isCurrentlyAdmin} currentLang={currentLang} />}
         
@@ -5663,7 +5666,7 @@ ${notesDraft}`;
         {view === 'accounts' && <AccountsManagementView appointments={appointments} onNavigate={setView} onEditAppointment={handleOpenEdit} onOpenModal={handleOpenCreateModal} onLogout={() => handleLogout()} />}
 
         {view === 'instructions' && <InstructionsView onNavigate={setView} onOpenProfile={() => setView('profile')} onOpenAffiliate={() => setView('affiliate')} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} currentUser={currentUser} isAdmin={isCurrentlyAdmin} onLogout={() => handleLogout()} />}
-        {view === 'affiliate' && <AffiliateView onNavigate={setView} currentUser={currentUser} setCurrentUser={setCurrentUser} handleUpdateUserData={handleUpdateUserData} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} automaticCommissionPayment={automaticCommissionPayment} onOpenProfile={() => setView('profile')} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} isAdmin={isCurrentlyAdmin} onLogout={() => handleLogout()} />}
+        {view === 'affiliate' && <AffiliateView onNavigate={setView} currentUser={currentUser} setCurrentUser={setCurrentUser} handleUpdateUserData={handleUpdateUserData} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} automaticCommissionPayment={automaticCommissionPayment} affiliateSpotsOpen={affiliateSpotsOpen} onOpenProfile={() => setView('profile')} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} isAdmin={isCurrentlyAdmin} onLogout={() => handleLogout()} />}
         {view === 'meeting_room' && <VirtualMeetingRoom currentUser={currentUser} isAdmin={isCurrentlyAdmin} onNavigate={setView} onOpenSupport={() => setIsSupportModalOpen(true)} />}
         {view === 'profile' && <ProfileView onNavigate={setView} currentUser={currentUser} userName={userName} userWhatsapp={userWhatsapp} userAppColor={userAppColor} userAppBg={userAppBg} isProcessingPayment={isProcessingPayment} isCurrentlyAdmin={isCurrentlyAdmin} handleUpdateUserData={handleUpdateUserData} getExpirationStatus={getExpirationStatus} handleExport={handleExport} handleImport={handleImport} handleStart2FASetup={handleStart2FASetup} handleStartWebAuthnSetup={handleStartWebAuthnSetup} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} onLogout={() => { handleLogout(); setView('landing'); }} setPaymentPlan={setPaymentPlan} fileInputRef={fileInputRef} />}
         {view === 'subscription' && (
@@ -5700,14 +5703,15 @@ ${notesDraft}`;
       </div>
       
       <SupportModal isOpen={isSupportModalOpen} onClose={() => setIsSupportModalOpen(false)} userName={userName} userEmail={currentUser?.email} />
+      <PwaSplashScreen />
 
       {/* Install Prompt (PWA) Modal */}
       {isInstallPromptOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#06402B] border border-outline-variant rounded-xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 text-on-primary shadow-lg ring-4 ring-primary/20">
-                <span className="material-symbols-outlined text-[32px]">system_update</span>
+              <div className="w-16 h-16 rounded-2xl bg-emerald-950 flex items-center justify-center mb-4 overflow-hidden shadow-lg ring-4 ring-emerald-500/20 border border-emerald-500/30">
+                <img src="/%C3%ADcone-%C3%A1rea%20de%20trabalho.png" alt="Ágio Agenda" className="w-full h-full object-cover" />
               </div>
               <h3 className="text-xl font-bold text-on-surface mb-2">Instale o Ágio Agenda</h3>
               <p className="text-sm text-on-surface-variant mb-6">
@@ -5907,15 +5911,13 @@ ${notesDraft}`;
                     <label className="text-sm font-medium text-white" htmlFor="value">{isEs ? 'Valor ($)' : isEn ? 'Amount ($)' : 'Valor (R$)'}</label>
                     <div className="relative">
                       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70 z-10 pointer-events-none">payments</span>
-                      <input 
+                      <CurrencyInput 
                         id="value"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white"
-                        placeholder="Ex: 150.00"
-                        value={formData.value === 0 ? '' : formData.value}
-                        onChange={e => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
+                        className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white font-bold text-base"
+                        placeholder="0,00"
+                        showSymbol={true}
+                        value={formData.value || 0}
+                        onChange={numVal => setFormData({...formData, value: numVal})}
                       />
                     </div>
                   </div>

@@ -26,15 +26,6 @@ export const NavigationBar = () => {
         >
           <span className="material-symbols-outlined text-[20px]" translate="no">chevron_right</span>
         </button>
-
-        <button
-          onClick={handleOpenNewTab}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-xs font-semibold transition-all active:scale-95 shadow-sm ml-1 cursor-pointer"
-          title="Abrir em nova aba (Desenvolvimento)"
-        >
-          <span className="material-symbols-outlined text-[16px] notranslate" translate="no">open_in_new</span>
-          <span className="hidden sm:inline">Abrir em nova aba</span>
-        </button>
       </div>
 
       <div className="flex items-center gap-3">
