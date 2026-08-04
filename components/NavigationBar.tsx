@@ -28,10 +28,10 @@ export const NavigationBar = () => {
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <LanguageSelector />
 
-        <div className="text-xs text-on-surface-variant font-medium flex items-center gap-1 opacity-70">
+        <div className="text-xs text-on-surface-variant font-medium hidden sm:flex items-center gap-1 opacity-70">
           <span className="material-symbols-outlined text-[14px]" translate="no">swipe</span>
           <span className="hidden md:inline">Navegação</span>
         </div>

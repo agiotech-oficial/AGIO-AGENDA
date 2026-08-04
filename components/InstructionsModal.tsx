@@ -117,7 +117,7 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
               </li>
               <li>
                 <strong>{isEs ? 'Mi Red' : isEn ? 'My Network' : 'Minha Rede'}:</strong>{' '}
-                {isEs ? 'Panel de Afiliados para obtener su enlace, crear nuevas URL de captación y seguir a sus referidos.' : isEn ? 'Affiliate dashboard to get your link, create new capture URLs, and track referrals.' : 'Painel de Afiliado para pegar seu link, criar novas URLs de captação e acompanhar indicados.'}
+                {isEs ? 'Panel completo de Afiliados para copiar su enlace exclusivo y código QR, acceder a materiales de divulgación (textos, imágenes, videos, audios), gestionar y captar prospectos por WhatsApp y solicitar retiros de comisiones por PIX.' : isEn ? 'Full Affiliate dashboard to copy your unique referral link and QR Code, access promotional materials (texts, images, videos, audio), manage and capture WhatsApp leads, and request PIX commission payouts.' : 'Painel completo de Afiliado para copiar seu link exclusivo e QR Code, acessar materiais de divulgação (textos, imagens, vídeos, áudios), gerenciar e capturar leads via WhatsApp e solicitar saques de comissões via PIX.'}
               </li>
               <li>
                 <strong>{isEs ? 'Perfil' : isEn ? 'Profile' : 'Perfil'}:</strong>{' '}
@@ -224,17 +224,57 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
 
           <div className="bg-[#0a2d1f] border border-white/20 rounded-xl p-6 shadow-md backdrop-blur-sm">
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-white">
-              <span className="material-symbols-outlined text-green-400 shrink-0 notranslate" translate="no">add_circle</span>
-              {isEs ? 'Creando Citas y Tareas' : isEn ? 'Creating Appointments & Tasks' : 'Criando Compromissos e Tarefas'}
+              <span className="material-symbols-outlined text-green-400 shrink-0 notranslate" translate="no">palette</span>
+              {isEs ? 'Clasificación por Colores de Compromisos y Cuentas' : isEn ? 'Color Classification for Events & Accounts' : 'Classificação por Cores em Compromissos e Contas'}
+            </h2>
+            <p className="text-white/85 text-base md:text-lg mb-3">
+              {isEs 
+                ? 'Organice sus compromisos y finanzas visualmente asignando colores específicos:'
+                : isEn
+                ? 'Visually organize your events and finances by assigning custom classification colors:'
+                : 'Organize seus compromissos e finanças de forma visual atribuindo cores de classificação:'}
+            </p>
+            <ul className="list-disc list-inside text-white/80 space-y-2 ml-2 text-base">
+              <li>
+                <strong>{isEs ? 'Selección de Color en el Formulario:' : isEn ? 'Color Selection in Form:' : 'Seleção de Cor no Formulário:'}</strong>{' '}
+                {isEs ? 'Al crear o editar un compromiso o cuenta, elija entre Verde, Azul, Rojo, Amarillo, Morado, Naranja, Rosa, Ciano o un color personalizado.' : isEn ? 'When creating or editing an appointment or account, choose from Green, Blue, Red, Yellow, Purple, Orange, Pink, Cyan, or a custom hex color.' : 'Ao criar ou editar qualquer compromisso ou conta, escolha entre Verde, Azul, Vermelho, Amarelo, Roxo, Laranja, Rosa, Ciano ou selecione uma cor personalizada.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Puntos Coloridos en el Calendario:' : isEn ? 'Colored Dots on Calendar:' : 'Pontos Coloridos no Calendário:'}</strong>{' '}
+                {isEs ? 'Cada día del calendario mensual muestra pequeños puntos con los colores de las citas programadas para ese día.' : isEn ? 'Each day on the monthly calendar displays small dots matching the colors of scheduled events.' : 'Cada dia no calendário mensal exibe pequenos pontos coloridos correspondentes às cores dos compromissos agendados naquele dia.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Borde Lateral Destacado:' : isEn ? 'Highlighted Side Border:' : 'Borda Lateral Destacada:'}</strong>{' '}
+                {isEs ? 'En las listas de la Agenda Diaria y Gestión de Cuentas, las tarjetas tienen una barra de color a la izquierda para identificar rápidamente la categoría.' : isEn ? 'In Daily Agenda and Account Management lists, cards display a colored bar on the left for fast visual identification.' : 'Nas listas da Agenda Diária e Gestão de Contas, os cards ganham uma barra de cor destacada à esquerda para identificação visual imediata.'}
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-[#0a2d1f] border border-white/20 rounded-xl p-6 shadow-md backdrop-blur-sm">
+            <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-white">
+              <span className="material-symbols-outlined text-green-400 shrink-0 notranslate" translate="no">system_update_alt</span>
+              {isEs ? 'Actualización Automática al Abrir el Aplicativo' : isEn ? 'Automatic System Updates on Launch' : 'Atualização Automática ao Abrir o Aplicativo'}
             </h2>
             <p className="text-white/85 text-base md:text-lg mb-2">
-              {isEs ? 'En la pantalla del Calendario, Agenda Diaria o Panel de Tareas, siempre encontrará un botón de suma (+).' : isEn ? 'On the Calendar, Daily Agenda, or Task Dashboard screens, you will always find an add button (+).' : 'Na tela do Calendário, Agenda Diária, ou no Dashboard de Tarefas, você sempre encontrará um botão de adição (+).'}
+              {isEs 
+                ? 'Ágio Agenda cuenta con un sistema de verificación automática de versiones y actualizaciones:'
+                : isEn
+                ? 'Ágio Agenda features an automated version and update check system:'
+                : 'O Ágio Agenda possui um sistema de verificação e instalação automática de atualizações:'}
             </p>
-            <ul className="list-decimal list-inside text-white/80 space-y-1 ml-2 text-base">
-              <li>{isEs ? 'Haga clic en el botón (+).' : isEn ? 'Click the (+) button.' : 'Clique no botão (+).'}</li>
-              <li>{isEs ? 'Complete el título, la fecha, la hora (opcional) y elija una categoría (Trabajo, Personal, Urgente).' : isEn ? 'Fill in the title, date, time (optional), and choose a category (Work, Personal, Urgent).' : 'Preencha o título, a data, a hora (opcional) e escolha uma categoria (Trabalho, Pessoal, Urgente).'}</li>
-              <li>{isEs ? 'Defina la Configuración de Alerta Inteligente seleccionando uno o más tiempos de anticipación.' : isEn ? 'Configure Smart Alert settings by selecting one or more advance reminder times.' : 'Defina as Configurações de Alerta Inteligente selecionando um ou mais horários de antecedência.'}</li>
-              <li>{isEs ? 'Guarde para visualizar el elemento en su lista de eventos programados.' : isEn ? 'Save to view the item in your scheduled events list.' : 'Salve para visualizar o item na sua lista de eventos programados.'}</li>
+            <ul className="list-disc list-inside text-white/80 space-y-2 ml-2 text-base">
+              <li>
+                <strong>{isEs ? 'Verificación al Abrir:' : isEn ? 'Launch Verification:' : 'Verificação ao Abrir:'}</strong>{' '}
+                {isEs ? 'Cada vez que abre la aplicación, el sistema comprueba automáticamente si hay nuevas versiones o mejoras.' : isEn ? 'Every time you open the app, the system automatically checks for new releases or improvements.' : 'Sempre que você abre o aplicativo, o sistema verifica automaticamente se há novas versões, correções e recursos.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Instalación Transparente:' : isEn ? 'Seamless Installation:' : 'Instalação Transparente:'}</strong>{' '}
+                {isEs ? 'Si hay una actualización disponible, el aplicativo la descarga e instala automáticamente sin perder sus datos guardados.' : isEn ? 'If an update is available, the app downloads and installs it automatically without losing your stored data.' : 'Caso haja uma atualização disponível, o aplicativo a baixa e aplica automaticamente sem perder nenhum dos seus dados.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Aplicación Instalable:' : isEn ? 'Installable App:' : 'Aplicativo Instalável:'}</strong>{' '}
+                {isEs ? 'Puede instalar la app en su dispositivo móvil o computadora mediante la opción "Agregar a Pantalla de Inicio" del navegador.' : isEn ? 'You can install the app on your smartphone or desktop via your browser\'s "Add to Home Screen" menu.' : 'Você pode instalar o aplicativo direto no seu celular ou computador pelo menu "Adicionar à Tela Inicial" do seu navegador.'}
+              </li>
             </ul>
           </div>
 
@@ -256,15 +296,33 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
           <div className="bg-[#0a2d1f] border border-white/20 rounded-xl p-6 shadow-md backdrop-blur-sm">
             <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-white">
               <span className="material-symbols-outlined text-green-400 shrink-0 notranslate" translate="no">groups</span>
-              {isEs ? 'Programa de Afiliados' : isEn ? 'Affiliate Program' : 'Programa de Afiliados'}
+              {isEs ? 'Programa de Afiliados (Mi Red)' : isEn ? 'Affiliate Program (My Network)' : 'Programa de Afiliados (Minha Rede)'}
             </h2>
-            <p className="text-white/85 text-base md:text-lg">
+            <p className="text-white/85 text-base md:text-lg mb-3">
               {isEs 
-                ? 'Cualquier usuario puede convertirse en afiliado de forma gratuita. Al ingresar a "Mi Red", simplemente acepte los términos (si aún no lo ha hecho) y copie su enlace exclusivo de recomendación. ¡Ganará comisiones directas e indirectas por cada persona que use su enlace y contrate los planos pro/premium!'
+                ? 'Cualquier usuario puede convertirse en afiliado de forma gratuita para recomendar Ágio Agenda y ganar comisiones directas (Nivel 1) e indirectas (Nivel 2) en efectivo por cada suscripción confirmada:'
                 : isEn
-                ? 'Any user can become an affiliate for free. When accessing "My Network", simply accept the terms (if you haven\'t already) and copy your unique referral link. You will earn direct and indirect commissions for every person who uses your link and subscribes to pro/premium plans!'
-                : 'Qualquer usuário pode virar afiliado gratuitamente. Ao entrar no "Minha Rede", basta aceitar os termos (se ainda não o fez) e copiar seu link exclusivo de indicação. Você ganhará comissões diretas e indiretas por cada pessoa que usar seu link e contratar os planos pro/premium!'}
+                ? 'Any user can become an affiliate for free to recommend Ágio Agenda and earn direct (Level 1) and indirect (Level 2) cash commissions for every confirmed subscription:'
+                : 'Qualquer usuário pode se tornar um afiliado gratuitamente para indicar o Ágio Agenda e faturar comissões diretas (Nível 1) e indiretas (Nível 2) em dinheiro por cada assinatura confirmada:'}
             </p>
+            <ul className="list-disc list-inside text-white/80 space-y-2.5 ml-2 text-base">
+              <li>
+                <strong>{isEs ? 'Enlace Exclusivo y Código QR:' : isEn ? 'Unique Link & QR Code:' : 'Link Exclusivo e QR Code:'}</strong>{' '}
+                {isEs ? 'Copie su enlace personalizado de recomendación o comparta el código QR directamente en pantalla para que sus referidos se registren vinculados a su red.' : isEn ? 'Copy your customized referral link or share the QR Code directly on-screen so your referrals sign up linked to your network.' : 'Copie seu link personalizado de indicação ou compartilhe o QR Code direto na tela para que seus indicados se cadastrem vinculados à sua rede.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Materiales de Divulgación Listos:' : isEn ? 'Ready-to-Use Marketing Materials:' : 'Materiais de Divulgação Prontos:'}</strong>{' '}
+                {isEs ? 'Acceda a textos persuasivos, imágenes oficiales, videos demostrativos y audios grabados listos para usar. Su enlace exclusivo se adjunta automáticamente a la plantilla para copiar y publicar en WhatsApp, Instagram, Facebook o Telegram con un solo clic.' : isEn ? 'Access persuasive texts, official images, demo videos, and recorded audio ready for use. Your unique affiliate link is automatically attached to the template so you can copy and post to WhatsApp, Instagram, Facebook, or Telegram with a single click.' : 'Acesse textos persuasivos, imagens oficiais, vídeos demonstrativos e áudios gravados prontos para uso. O seu link exclusivo de afiliado é embutido automaticamente na mensagem para você copiar e postar no WhatsApp, Instagram, Facebook ou Telegram com apenas um clique.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Captura y Gestión de Leads (WhatsApp):' : isEn ? 'WhatsApp Lead Management & Capture:' : 'Captura e Gestão de Leads (Agenda do WhatsApp):'}</strong>{' '}
+                {isEs ? 'Importe contactos de su libreta telefónica a la tabla de prospectos. Puede seleccionar contactos específicos y enviar el enlace de afiliado combinado con el material de divulgación directamente por WhatsApp, con seguimiento de estado (Enviado / No Enviado) y protección anti-spam.' : isEn ? 'Import contacts from your phonebook into the lead table. You can select specific contacts and send your affiliate link combined with promotional materials directly via WhatsApp, complete with status tracking (Link Sent / Not Sent) and anti-spam protection.' : 'Importe contatos da sua agenda telefônica para a tabela de leads. Você pode selecionar contatos específicos e enviar o link de afiliado combinado com o material de divulgação diretamente pelo WhatsApp, com controle de status (Link Enviado / Não Enviado) e proteção anti-spam para envios conscientes.'}
+              </li>
+              <li>
+                <strong>{isEs ? 'Panel de Comisiones y Retiros por PIX:' : isEn ? 'Commission Dashboard & PIX Cashouts:' : 'Painel de Comissões e Saques via PIX:'}</strong>{' '}
+                {isEs ? 'Registre su clave PIX, siga el historial de referidos directos e indirectos, consulte su saldo disponible de comisiones y solicite retiros directamente a su cuenta bancaria.' : isEn ? 'Register your PIX key, track the history of direct and indirect referrals, check your available commission balance, and request payouts directly to your bank account.' : 'Cadastre sua chave PIX, acompanhe o histórico de indicados diretos e indiretos, consulte o saldo disponível de comissões e solicite saques diretamente para a sua conta bancária.'}
+              </li>
+            </ul>
           </div>
         </div>
       </div>

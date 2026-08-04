@@ -13,6 +13,7 @@ interface Appointment {
   address?: string;
   notes?: string;
   reminders?: string[];
+  color?: string;
 }
 
 interface AccountsManagementViewProps {
@@ -271,7 +272,8 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
                       <div 
                         key={app.id} 
                         onClick={() => onEditAppointment(app)}
-                        className="bg-white/10 hover:bg-white/20 p-3 rounded-lg border border-white/10 flex justify-between items-center cursor-pointer transition-colors shadow-sm gap-2"
+                        className="bg-white/10 hover:bg-white/20 p-3 rounded-lg border border-white/10 flex justify-between items-center cursor-pointer transition-colors shadow-sm gap-2 relative overflow-hidden"
+                        style={{ borderLeftWidth: '4px', borderLeftColor: app.color || '#10b981' }}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <div className="text-center flex flex-col min-w-[62px] px-1.5 py-1 bg-white/15 rounded-md border border-white/10 shrink-0">

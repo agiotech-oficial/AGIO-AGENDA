@@ -1573,7 +1573,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
                     Solicitações de Saque Pendentes
                   </h4>
                 </div>
-                <div className="border border-[#ddd6fe] rounded-xl overflow-hidden bg-white shadow-inner">
+                <div className="border border-[#ddd6fe] rounded-xl overflow-x-auto bg-white shadow-inner max-w-full">
                   {withdrawals.filter((w: any) => w.status === 'pendente').length === 0 ? (
                     <div className="p-6 text-center text-sm text-[#4b5563] font-medium bg-white rounded-xl">Nenhuma solicitação pendente.</div>
                   ) : (
@@ -1844,12 +1844,12 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
       {isAdminMarketingModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#06402B] text-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-[#f3f4f6] bg-[#f9fafb]/50 sticky top-0 z-10">
-              <h3 className="text-xl font-bold text-[#ff954c] flex items-center gap-2">
-                 <span className="material-symbols-outlined">campaign</span>
+            <div className="flex justify-between items-center p-6 border-b border-[#e5e7eb] bg-[#f9fafb] sticky top-0 z-10 rounded-t-2xl">
+              <h3 className="text-xl font-bold text-[#111827] flex items-center gap-2">
+                 <span className="material-symbols-outlined text-[#06402B]">campaign</span>
                  Materiais de Divulgação & QR Code
               </h3>
-              <button onClick={() => setIsAdminMarketingModalOpen(false)} className="text-[#9ca3af] hover:text-[#ef4444] transition-colors">
+              <button onClick={() => setIsAdminMarketingModalOpen(false)} className="text-[#6b7280] hover:text-[#ef4444] transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -2582,8 +2582,8 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
                   )}
                 </div>
                 
-                <div className="border border-[#ddd6fe] rounded-xl overflow-hidden bg-white shadow-inner">
-                  <table className="w-full text-left whitespace-nowrap">
+                <div className="border border-[#ddd6fe] rounded-xl overflow-x-auto bg-white shadow-inner max-w-full">
+                  <table className="w-full text-left whitespace-nowrap min-w-[700px]">
                     <thead className="bg-[#ede9fe] text-[#5b21b6] text-xs font-semibold uppercase tracking-wider">
                       <tr>
                         <th className="px-4 py-3 font-medium">Usuário</th>

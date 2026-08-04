@@ -49,6 +49,17 @@ const safeInitMercadoPago = (publicKey: string) => {
 
 type CategoryType = 'Trabalho' | 'Pessoal' | 'Urgente';
 
+const CLASSIFICATION_COLORS = [
+  { id: 'emerald', hex: '#10b981', name: 'Verde' },
+  { id: 'blue', hex: '#3b82f6', name: 'Azul' },
+  { id: 'red', hex: '#ef4444', name: 'Vermelho' },
+  { id: 'yellow', hex: '#f59e0b', name: 'Amarelo' },
+  { id: 'purple', hex: '#8b5cf6', name: 'Roxo' },
+  { id: 'orange', hex: '#f97316', name: 'Laranja' },
+  { id: 'pink', hex: '#ec4899', name: 'Rosa' },
+  { id: 'cyan', hex: '#06b6d4', name: 'Ciano' },
+];
+
 interface Appointment {
   id: string;
   title: string;
@@ -63,6 +74,7 @@ interface Appointment {
   valueStatus?: 'a_receber' | 'recebido' | 'a_pagar' | 'pago';
   googleDocId?: string;
   googleDocUrl?: string;
+  color?: string;
 }
 
 const shareAppointment = (app: Appointment) => {
@@ -643,12 +655,32 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
               
               <div className="mb-8 relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-purple-500/10 rounded-2xl blur-xl transition-all duration-500"></div>
-                <div className="relative bg-black/20 p-6 md:p-8 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
-                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight drop-shadow-md leading-tight">
-                    O aplicativo ideal onde você gerencia seus compromissos e responsabilidades pessoais, profissionais e financeiras em um só lugar.
+                <div className="relative bg-black/20 p-6 md:p-8 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md text-left">
+                  <h3 className="text-xl md:text-2xl font-extrabold text-white mb-3 tracking-tight drop-shadow-md leading-snug">
+                    Diga adeus à velha agenda de papel! Conheça o <span className="text-emerald-400">ÁGIO AGENDA</span>, a sua solução definitiva para o controle total do seu tempo e das suas finanças.
                   </h3>
-                  <p className="text-white/80 leading-relaxed font-medium mb-5 text-base md:text-lg">
-                    Organize sua rotina de forma simples e rápida com lembretes inteligentes, integração com Google Agenda e muito mais.
+                  
+                  <p className="text-white/90 leading-relaxed font-medium mb-4 text-sm md:text-base">
+                    Com o Ágio Agenda, você gerencia seus compromissos e contas em um só lugar. Ele conta com lembretes automáticos com alertas por texto e áudio personalizado, bloco de anotações integrado, sincronização segura na nuvem e até otimização de rotas e logística para o seu dia a dia.
+                  </p>
+
+                  <div className="space-y-2.5 my-4 text-sm md:text-base text-white/85 leading-relaxed bg-black/20 p-4 rounded-xl border border-white/10">
+                    <p className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-lg shrink-0 mt-0.5" translate="no">verified</span>
+                      <span><strong>Ele é perfeito para quem vive na rotina de plantões</strong> — como Guardas Municipais, Policiais, Bombeiros e profissionais da Saúde.</span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-lg shrink-0 mt-0.5" translate="no">verified</span>
+                      <span><strong>É ideal para quem organiza horários e clientes</strong> — como Professores, Barbeiros, Cabeleireiras, Manicures, Personal Trainers, Mecânicos, Veterinários, Guias de Turismo, Restaurantes e Profissionais Liberais.</span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-lg shrink-0 mt-0.5" translate="no">verified</span>
+                      <span><strong>E essencial para quem vende e presta serviços</strong> — como Corretores de imóveis e seguros, Vendedores, Músicos, Diaristas, Engenheiros e Construtores.</span>
+                    </p>
+                  </div>
+
+                  <p className="text-emerald-300 font-semibold leading-relaxed mb-5 text-sm md:text-base text-center md:text-left">
+                    Seja qual for a sua profissão ou rotina, o Ágio Agenda foi feito para você. Simplifique sua vida e assuma o controle hoje mesmo!
                   </p>
                   <div className="w-full md:w-[70%] mx-auto rounded-xl overflow-hidden shadow-lg border border-white/10 mt-4 aspect-video relative bg-black">
                       <div className="w-full h-full cursor-pointer relative group" onClick={() => setIsVideoModalOpen(true)}>
@@ -675,7 +707,7 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                 >
                   <span>{t('affiliateProgram')}</span>
                 </h4>
-                <p className="text-sm md:text-lg font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] text-center whitespace-normal md:whitespace-nowrap max-w-5xl mx-auto">{t('affiliateDesc')}</p>
+                <p className="text-sm md:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] text-center whitespace-normal max-w-3xl mx-auto leading-relaxed px-2">{t('affiliateDesc')}</p>
                  <ul className="flex flex-row justify-between items-stretch gap-2 md:gap-4 mt-2 list-none text-white/90 drop-shadow-sm text-center w-full max-w-4xl mx-auto">
                    <div 
                      onClick={() => setSelectedCommissionDetail('direta')}
@@ -725,7 +757,7 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                   </div>
                   <span className="text-[15px] font-black text-white leading-tight">Lembretes<br/>Automáticos</span>
                 </div>
-                <p className="text-[13px] text-white font-medium leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">Reduza faltas com integração ao Google Agenda, notificações automáticas, avisos por voz e chamadas rápidas via WhatsApp.</p>
+                <p className="text-[13px] text-white font-medium leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">Reduza faltas com integração ao Google Agenda, notificações automáticas, avisos por texto e áudio personalizados.</p>
               </div>
               
               <div className="flex flex-col gap-2 p-4 bg-surface-container-high rounded-2xl border border-white/10 hover:border-white/30 transition-all shadow-md hover:shadow-xl hover:-translate-y-1">
@@ -2110,12 +2142,15 @@ function CalendarMobileView({
               <div key={`prev-${d}`} className="aspect-square flex flex-col items-center justify-center text-base text-white/30">{d}</div>
             ))}
             {currentMonthDays.map(d => {
-              const hasAppt = appointments.some(a => {
+              const dayAppts = appointments.filter(a => {
                 const parts = a.date.split('-');
                 return parseInt(parts[0]) === currentDate.getFullYear() && 
                        parseInt(parts[1]) === currentDate.getMonth() + 1 && 
                        parseInt(parts[2]) === d;
               });
+
+              const hasAppt = dayAppts.length > 0;
+              const dayColors = Array.from(new Set(dayAppts.map(a => a.color || '#10b981')));
               
               const isToday = new Date().getFullYear() === currentDate.getFullYear() && 
                               new Date().getMonth() === currentDate.getMonth() && 
@@ -2127,11 +2162,25 @@ function CalendarMobileView({
                 <div 
                   key={d} 
                   onClick={() => onDayClick(`${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`)}
-                  className={`aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-lg transition-all ${isVisualToday ? 'bg-white text-brand shadow-lg font-bold active:scale-95 relative' : 'text-white hover:bg-white/20 relative'}`}
+                  className={`aspect-square flex flex-col items-center justify-center text-base cursor-pointer rounded-lg transition-all relative ${isVisualToday ? 'bg-white text-brand shadow-lg font-bold active:scale-95' : 'text-white hover:bg-white/20'}`}
                 >
-                  {d}
-                  {hasAppt && !isVisualToday && <div className="w-1.5 h-1.5 rounded-full bg-white mt-0.5" />}
-                  {hasAppt && isVisualToday && <div className="w-1.5 h-1.5 rounded-full bg-brand mt-0.5" />}
+                  <span>{d}</span>
+                  {hasAppt && (
+                    <div className="flex items-center justify-center gap-1 mt-0.5 max-w-full px-1 flex-wrap">
+                      {dayColors.slice(0, 4).map((colorHex, idx) => (
+                        <span
+                          key={idx}
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 shadow-sm ${isVisualToday ? 'ring-1 ring-black/20' : 'ring-1 ring-white/20'}`}
+                          style={{ backgroundColor: colorHex }}
+                        />
+                      ))}
+                      {dayColors.length > 4 && (
+                        <span className={`text-[8px] font-bold leading-none ${isVisualToday ? 'text-brand' : 'text-white'}`}>
+                          +
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -2215,7 +2264,8 @@ function CalendarMobileView({
               filteredAppointments.map(app => (
                 <div key={app.id} 
                      onClick={() => onEditAppointment(app)}
-                     className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 flex justify-between items-center group cursor-pointer hover:bg-white/20 transition-colors shadow-sm">
+                     className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 flex justify-between items-center group cursor-pointer hover:bg-white/20 transition-colors shadow-sm relative overflow-hidden"
+                     style={{ borderLeftWidth: '4px', borderLeftColor: app.color || '#10b981' }}>
                   <div className="flex gap-4 items-center flex-1 min-w-0 pr-2">
                     <div className="text-center flex flex-col min-w-[50px]">
                       <span className="block text-[13px] font-semibold text-white whitespace-nowrap">
@@ -4633,23 +4683,25 @@ ${whatsAppMsg}`);
     reminders: [] as string[],
     value: 0,
     valueStatus: 'a_receber' as 'a_receber' | 'recebido' | 'a_pagar' | 'pago',
+    color: '#10b981',
   });
 
   const handleOpenCreateModal = () => {
-    setFormData(prev => ({ ...prev, reminders: defaultReminders }));
+    setFormData(prev => ({ ...prev, reminders: defaultReminders, color: prev.color || '#10b981' }));
     setIsModalOpen(true);
   };
 
   const saveAppointmentDirectly = (dataToSave: any, editId: string | null) => {
     if (editId) {
       setAppointments(appointments.map(app => 
-        app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType } : app
+        app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981' } : app
       ).sort((a, b) => a.date.localeCompare(b.date)));
     } else {
       const newAppointment: Appointment = {
         id: Math.random().toString(36).substr(2, 9),
         ...dataToSave,
-        category: dataToSave.category as CategoryType
+        category: dataToSave.category as CategoryType,
+        color: dataToSave.color || '#10b981',
       };
       setAppointments([...appointments, newAppointment].sort((a, b) => a.date.localeCompare(b.date)));
     }
@@ -4657,7 +4709,7 @@ ${whatsAppMsg}`);
     setIsModalOpen(false);
     setEditingAppointmentId(null);
     setOptimizationAlert(null);
-    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber' });
+    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
   };
 
   const handleCreateAppointment = (e: React.FormEvent) => {
@@ -4719,6 +4771,7 @@ ${whatsAppMsg}`);
       reminders: app.reminders || [],
       value: app.value || 0,
       valueStatus: app.valueStatus || 'a_receber',
+      color: app.color || '#10b981',
     });
     setEditingAppointmentId(app.id);
     setIsModalOpen(true);
@@ -5780,7 +5833,7 @@ ${notesDraft}`;
                         setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
                       }
                     }}
                     className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
@@ -5796,7 +5849,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
                   }}
                   className="text-white hover:text-white/70 transition-colors p-1"
                 >
@@ -5944,6 +5997,54 @@ ${notesDraft}`;
 
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-white uppercase font-bold">{isEs ? 'Clasificación por Color' : isEn ? 'Color Classification' : 'Classificação por Cor'}</label>
+                  <span className="text-xs text-emerald-300 font-semibold flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block border border-white/40" style={{ backgroundColor: formData.color || '#10b981' }} />
+                    {CLASSIFICATION_COLORS.find(c => c.hex === formData.color)?.name || (formData.color ? (isEs ? 'Personalizado' : isEn ? 'Custom' : 'Personalizado') : 'Verde')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap bg-surface-container border border-white/20 rounded-xl p-3">
+                  {CLASSIFICATION_COLORS.map((c) => {
+                    const isSelected = (formData.color || '#10b981') === c.hex;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, color: c.hex })}
+                        title={c.name}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-[#06402B] shadow-md'
+                            : 'hover:scale-105 opacity-80 hover:opacity-100'
+                        }`}
+                        style={{ backgroundColor: c.hex }}
+                      >
+                        {isSelected && (
+                          <span className="material-symbols-outlined text-[18px] text-white font-bold drop-shadow-md" translate="no">
+                            check
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  <div className="relative flex items-center gap-1.5 ml-auto">
+                    <label htmlFor="customColorPicker" className="text-xs text-white/70 cursor-pointer hover:text-white font-medium">
+                      {isEs ? 'Outro' : isEn ? 'Custom' : 'Outro'}
+                    </label>
+                    <input
+                      id="customColorPicker"
+                      type="color"
+                      value={formData.color || '#10b981'}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      className="w-8 h-8 rounded-full cursor-pointer border-0 bg-transparent p-0 overflow-hidden shrink-0 hover:scale-105 transition-transform"
+                      title={isEs ? 'Elegir color personalizado' : isEn ? 'Choose custom color' : 'Escolher cor personalizada'}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-white uppercase font-bold">{isEs ? 'Configuración de Alerta Inteligente' : isEn ? 'Smart Alert Settings' : 'Configurações de Alerta Inteligente'}</label>
                   <span className="text-xs text-emerald-400 font-semibold">
                     {formData.reminders.length} {isEs ? (formData.reminders.length > 1 ? 'seleccionados' : 'seleccionado') : isEn ? 'selected' : (formData.reminders.length > 1 ? 'selecionados' : 'selecionado')}
@@ -6006,7 +6107,7 @@ ${notesDraft}`;
                         setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
                       }
                     }}
                     className="px-3 py-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-bold flex items-center justify-center gap-1.5 text-sm"
@@ -6021,7 +6122,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
                   }}
                   className="flex-1 py-3 rounded-lg border border-white/20 text-white hover:bg-surface-container-high transition-colors font-medium text-sm"
                 >
