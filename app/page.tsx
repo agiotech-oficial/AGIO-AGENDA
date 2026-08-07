@@ -25,6 +25,7 @@ import { AutoUpdater } from '../components/AutoUpdater';
 import nextDynamic from 'next/dynamic';
 import { AffiliateLeads } from '../components/AffiliateLeads';
 import { CurrencyInput } from '../components/CurrencyInput';
+import AddressLocationPicker from '../components/AddressLocationPicker';
 
 const Payment = nextDynamic(
   () => import('@mercadopago/sdk-react').then((mod) => mod.Payment),
@@ -75,6 +76,7 @@ interface Appointment {
   googleDocId?: string;
   googleDocUrl?: string;
   color?: string;
+  itemType?: 'compromisso' | 'conta';
 }
 
 const shareAppointment = (app: Appointment) => {
@@ -136,7 +138,7 @@ Contato: ${app.contact}`;
   window.open(gcalUrl, '_blank');
 };
 
-function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemModules, directCommissionPct, indirectCommissionPct, directCommissionMonths, indirectCommissionMonths, affiliateSpotsOpen = true, onOpenSupport, onOpenAffiliate, onOpenProfile, currentUser }: { onNavigate: (view: string) => void, onLogin: (name: string, whatsapp: string, isAffiliateOptIn: boolean, email?: string, cpf?: string, city?: string, state?: string, country?: string, password?: string) => void, onGoogleLogin: (isAffiliateOptIn: boolean) => void, systemPrices: { monthly: number, semiannual: number, annual: number }, systemModules?: any[], directCommissionPct: string, indirectCommissionPct: string, directCommissionMonths: number, indirectCommissionMonths: number, affiliateSpotsOpen?: boolean, onOpenSupport: () => void, onOpenAffiliate: () => void, onOpenProfile: () => void, currentUser?: any }) {
+function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemModules, directCommissionPct, indirectCommissionPct, directCommissionMonths, indirectCommissionMonths, affiliateSpotsOpen = true, onOpenSupport, onOpenAffiliate, onOpenProfile, currentUser, onInstallPWA }: { onNavigate: (view: string) => void, onLogin: (name: string, whatsapp: string, isAffiliateOptIn: boolean, email?: string, cpf?: string, city?: string, state?: string, country?: string, password?: string) => void, onGoogleLogin: (isAffiliateOptIn: boolean) => void, systemPrices: { monthly: number, semiannual: number, annual: number }, systemModules?: any[], directCommissionPct: string, indirectCommissionPct: string, directCommissionMonths: number, indirectCommissionMonths: number, affiliateSpotsOpen?: boolean, onOpenSupport: () => void, onOpenAffiliate: () => void, onOpenProfile: () => void, currentUser?: any, onInstallPWA?: () => void }) {
   const [name, setName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
@@ -563,6 +565,16 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
         </div>
         <div className="flex items-center justify-end z-10 flex-1 gap-4">
           <div className="hidden md:flex items-center gap-4">
+            {onInstallPWA && (
+              <button
+                onClick={onInstallPWA}
+                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm hover:scale-105 cursor-pointer"
+                title="Instalar Aplicativo na Área de Trabalho"
+              >
+                <span className="material-symbols-outlined text-[18px] text-emerald-400">install_desktop</span>
+                <span>Instalar App</span>
+              </button>
+            )}
             <button
               onClick={() => setIsInstructionsModalOpen(true)}
               className="text-label-sm font-label-sm text-white/90 hover:text-white flex items-center gap-1.5 hover:underline cursor-pointer"
@@ -596,6 +608,15 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
               </button>
               
               <span className="text-xs text-white/50 font-medium px-4 py-2 border-b border-white/10 mt-2">Navegação</span>
+              {onInstallPWA && (
+                <button
+                  onClick={() => { onInstallPWA(); setIsLandingMobileMenuOpen(false); }}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all text-left border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px] text-emerald-400">install_mobile</span>
+                  Instalar App (Área de Trabalho)
+                </button>
+              )}
               <button
                 onClick={() => { onOpenSupport(); setIsLandingMobileMenuOpen(false); }}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all text-left border border-transparent text-white hover:bg-white/10 cursor-pointer"
@@ -806,11 +827,24 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
         {/* Right Column: Registration Form Card */}
         <section className="w-full md:w-1/2 lg:w-5/12">
           <div className="bg-surface-container p-8 rounded-2xl shadow-[0px_8px_32px_rgba(0,0,0,0.3)] flex flex-col gap-stack-lg border border-white/5">
-            <div className="text-center md:text-left">
-              <h2 className="text-headline-lg font-headline-lg text-white">Criar sua conta</h2>
-              <p className="text-body-md font-body-md text-on-surface-variant mt-2">
-                {hasExhaustedTrial ? 'Organize sua rotina com máxima eficiência.' : 'Inicie seu teste gratuito de 40 dias agora.'}
-              </p>
+            <div className="flex justify-between items-start gap-2">
+              <div className="text-center md:text-left">
+                <h2 className="text-headline-lg font-headline-lg text-white">Criar sua conta</h2>
+                <p className="text-body-md font-body-md text-on-surface-variant mt-2">
+                  {hasExhaustedTrial ? 'Organize sua rotina com máxima eficiência.' : 'Inicie seu teste gratuito de 40 dias agora.'}
+                </p>
+              </div>
+              {onInstallPWA && (
+                <button 
+                  type="button"
+                  onClick={onInstallPWA}
+                  title="Instalar Aplicativo na Área de Trabalho"
+                  className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shrink-0 shadow-sm hover:scale-105 transition-all cursor-pointer mt-1"
+                >
+                  <span className="material-symbols-outlined text-[18px] text-emerald-400">install_desktop</span>
+                  <span className="hidden sm:inline">Instalar App</span>
+                </button>
+              )}
             </div>
 
             {/* Banner de Oferta Promocional no Topo do Cadastro */}
@@ -1002,6 +1036,18 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                 <span>Dúvidas? Acesse as</span>
                 <button type="button" onClick={() => setIsInstructionsModalOpen(true)} className="text-green-400 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"><span className="material-symbols-outlined text-[14px]">menu_book</span>Instruções de Uso</button>
               </div>
+              {onInstallPWA && (
+                <div className="pt-3 border-t border-white/10 mt-2 w-full">
+                  <button
+                    type="button"
+                    onClick={onInstallPWA}
+                    className="w-full bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 hover:from-emerald-900 hover:to-teal-900 border border-emerald-400/50 text-emerald-300 hover:text-white py-2.5 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-emerald-500/20 cursor-pointer group"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-emerald-400 group-hover:scale-110 transition-transform">install_desktop</span>
+                    <span>Instalar Aplicativo na Área de Trabalho</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -2289,6 +2335,17 @@ function CalendarMobileView({
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {app.itemType === 'conta' || (app.value && app.value > 0) ? (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-amber-400 text-black flex items-center gap-1 shadow-sm">
+                            <span className="material-symbols-outlined text-[11px]" translate="no">account_balance_wallet</span>
+                            <span>Conta: R$ {(app.value || 0).toFixed(2).replace('.', ',')}</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[11px]" translate="no">event</span>
+                            <span>Compromisso</span>
+                          </span>
+                        )}
                         <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-white/20 text-white uppercase tracking-wider">{app.category}</span>
                         {app.reminders && app.reminders.length > 0 && (
                           <span className="text-white flex items-center gap-1 text-[9px] font-bold bg-white/20 px-2 py-0.5 rounded" title="Lembrete ativo">
@@ -4684,17 +4741,19 @@ ${whatsAppMsg}`);
     value: 0,
     valueStatus: 'a_receber' as 'a_receber' | 'recebido' | 'a_pagar' | 'pago',
     color: '#10b981',
+    itemType: 'compromisso' as 'compromisso' | 'conta',
   });
 
-  const handleOpenCreateModal = () => {
-    setFormData(prev => ({ ...prev, reminders: defaultReminders, color: prev.color || '#10b981' }));
+  const handleOpenCreateModal = (forcedType?: 'compromisso' | 'conta') => {
+    const typeToSet = forcedType || (view === 'accounts' ? 'conta' : 'compromisso');
+    setFormData(prev => ({ ...prev, reminders: defaultReminders, color: prev.color || '#10b981', itemType: typeToSet }));
     setIsModalOpen(true);
   };
 
   const saveAppointmentDirectly = (dataToSave: any, editId: string | null) => {
     if (editId) {
       setAppointments(appointments.map(app => 
-        app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981' } : app
+        app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981', itemType: dataToSave.itemType || 'compromisso' } : app
       ).sort((a, b) => a.date.localeCompare(b.date)));
     } else {
       const newAppointment: Appointment = {
@@ -4702,6 +4761,7 @@ ${whatsAppMsg}`);
         ...dataToSave,
         category: dataToSave.category as CategoryType,
         color: dataToSave.color || '#10b981',
+        itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
       };
       setAppointments([...appointments, newAppointment].sort((a, b) => a.date.localeCompare(b.date)));
     }
@@ -4709,7 +4769,7 @@ ${whatsAppMsg}`);
     setIsModalOpen(false);
     setEditingAppointmentId(null);
     setOptimizationAlert(null);
-    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
+    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
   };
 
   const handleCreateAppointment = (e: React.FormEvent) => {
@@ -4761,6 +4821,7 @@ ${whatsAppMsg}`);
   };
 
   const handleOpenEdit = (app: Appointment) => {
+    const inferredType = app.itemType || ((app.value && app.value > 0) || app.valueStatus ? 'conta' : 'compromisso');
     setFormData({
       title: app.title,
       date: app.date,
@@ -4772,6 +4833,7 @@ ${whatsAppMsg}`);
       value: app.value || 0,
       valueStatus: app.valueStatus || 'a_receber',
       color: app.color || '#10b981',
+      itemType: inferredType,
     });
     setEditingAppointmentId(app.id);
     setIsModalOpen(true);
@@ -5704,7 +5766,7 @@ ${notesDraft}`;
       `}</style>
       
       <div suppressHydrationWarning className={isAnyModalActive ? "pointer-events-none select-none opacity-40 transition-all duration-300 filter blur-[0.5px]" : "transition-all duration-300"}>
-        {view === 'landing' && <LandingView onNavigate={setView} currentUser={currentUser} onLogin={handleUserLogin} onGoogleLogin={handleGoogleLogin} systemPrices={systemPrices} systemModules={systemModules} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} affiliateSpotsOpen={affiliateSpotsOpen} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenAffiliate={() => setView('affiliate')} onOpenProfile={() => setView('profile')} />}
+        {view === 'landing' && <LandingView onNavigate={setView} currentUser={currentUser} onLogin={handleUserLogin} onGoogleLogin={handleGoogleLogin} systemPrices={systemPrices} systemModules={systemModules} directCommissionPct={directCommissionPct} indirectCommissionPct={indirectCommissionPct} directCommissionMonths={directCommissionMonths} indirectCommissionMonths={indirectCommissionMonths} affiliateSpotsOpen={affiliateSpotsOpen} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenAffiliate={() => setView('affiliate')} onOpenProfile={() => setView('profile')} onInstallPWA={triggerInstallPrompt} />}
         
         {view === 'main_menu' && <MainMenuView onNavigate={setView} onOpenProfile={() => setView('profile')} onOpenAffiliate={() => setView('affiliate')} onOpenSupport={() => setIsSupportModalOpen(true)} onOpenSubscription={() => setView('subscription')} onLogout={() => handleLogout()} userName={userName} currentUser={currentUser} isAccessExpired={currentUser ? ((currentUser.plan === 'free' && getExpirationStatus(currentUser).trialDaysRemaining <= 0) || (currentUser.plan === 'premium' && getExpirationStatus(currentUser).planExpired)) : false} isAdmin={isCurrentlyAdmin} currentLang={currentLang} />}
         
@@ -5833,7 +5895,7 @@ ${notesDraft}`;
                         setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
                       }
                     }}
                     className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
@@ -5849,7 +5911,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
                   }}
                   className="text-white hover:text-white/70 transition-colors p-1"
                 >
@@ -5859,16 +5921,54 @@ ${notesDraft}`;
             </div>
 
             <form onSubmit={handleCreateAppointment} className="p-6 flex flex-col gap-4">
+              {/* Type selector: Compromisso vs Conta */}
+              <div className="flex items-center gap-2 bg-surface-container border border-white/20 p-1.5 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, itemType: 'compromisso' })}
+                  className={`flex-1 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    formData.itemType === 'compromisso'
+                      ? 'bg-emerald-500 text-black shadow-md font-extrabold'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">event</span>
+                  <span>{isEs ? 'Compromiso' : isEn ? 'Appointment' : 'Compromisso'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, itemType: 'conta' })}
+                  className={`flex-1 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    formData.itemType === 'conta'
+                      ? 'bg-amber-400 text-black shadow-md font-extrabold'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                  <span>{isEs ? 'Cuenta / Finanza' : isEn ? 'Account / Finance' : 'Conta / Finança'}</span>
+                </button>
+              </div>
+
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white" htmlFor="title">{isEs ? 'Título de la Cita' : isEn ? 'Appointment Title' : 'Título do Compromisso'}</label>
+                <label className="text-sm font-medium text-white" htmlFor="title">
+                  {formData.itemType === 'conta' 
+                    ? (isEs ? 'Descripción / Nombre de la Cuenta' : isEn ? 'Account Name / Description' : 'Descrição / Nome da Conta')
+                    : (isEs ? 'Título de la Cita' : isEn ? 'Appointment Title' : 'Título do Compromisso')
+                  }
+                </label>
                 <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-3.5 text-white/70">match_case</span>
+                   <span className="material-symbols-outlined absolute left-3 top-3.5 text-white/70">
+                     {formData.itemType === 'conta' ? 'receipt' : 'match_case'}
+                   </span>
                    <textarea 
                       id="title"
                       required
                       rows={1}
                       className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-white/50 focus:border-white focus:ring-1 focus:ring-white resize-none overflow-hidden min-h-[50px] leading-tight"
-                      placeholder={isEs ? 'Ej: Reunión de Planificación' : isEn ? 'E.g., Planning Meeting' : 'Ex: Reunião de Planejamento'}
+                      placeholder={formData.itemType === 'conta'
+                        ? (isEs ? 'Ej: Cuenta de Luz, Tarjeta de Crédito, Cobro' : isEn ? 'E.g., Electric Bill, Credit Card, Client Payment' : 'Ex: Conta de Luz, Fatura do Cartão, Aluguel')
+                        : (isEs ? 'Ej: Reunión de Planificación' : isEn ? 'E.g., Planning Meeting' : 'Ex: Reunião de Planejamento')
+                      }
                       value={formData.title}
                       onChange={e => {
                         e.target.style.height = 'auto';
@@ -5881,7 +5981,12 @@ ${notesDraft}`;
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-white" htmlFor="date">{isEs ? 'Fecha' : isEn ? 'Date' : 'Data'}</label>
+                  <label className="text-sm font-medium text-white" htmlFor="date">
+                    {formData.itemType === 'conta'
+                      ? (isEs ? 'Fecha Vencimiento' : isEn ? 'Due Date' : 'Data de Vencimento')
+                      : (isEs ? 'Fecha' : isEn ? 'Date' : 'Data')
+                    }
+                  </label>
                   <div className="relative">
                      <input 
                         id="date"
@@ -5895,12 +6000,14 @@ ${notesDraft}`;
                 </div>
                 
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-white" htmlFor="time">{isEs ? 'Hora' : isEn ? 'Time' : 'Horário'}</label>
+                  <label className="text-sm font-medium text-white" htmlFor="time">
+                    {formData.itemType === 'conta' ? (isEs ? 'Hora (Opcional)' : isEn ? 'Time (Optional)' : 'Horário (Opcional)') : (isEs ? 'Hora' : isEn ? 'Time' : 'Horário')}
+                  </label>
                   <div className="relative">
                      <input 
                         id="time"
                         type="time" 
-                        required
+                        required={formData.itemType !== 'conta'}
                         className="w-full bg-surface-container border border-white/20 rounded-lg px-4 py-3 text-white outline-none transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert focus:border-white focus:ring-1 focus:ring-white"
                         value={formData.time}
                         onChange={e => setFormData({...formData, time: e.target.value})}
@@ -5909,30 +6016,94 @@ ${notesDraft}`;
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white" htmlFor="address">{isEs ? 'Dirección / Lugar' : isEn ? 'Address / Location' : 'Endereço / Local'}</label>
-                <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70">location_on</span>
-                   <input 
-                      id="address"
-                      type="text" 
-                      className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white"
-                      placeholder={isEs ? 'Ej: Av. Paulista, 1000 (Opcional)' : isEn ? 'E.g., 100 Main St (Optional)' : 'Ex: Av. Paulista, 1000 (Opcional)'}
-                      value={formData.address || ''}
-                      onChange={e => setFormData({...formData, address: e.target.value})}
-                   />
+              {/* Se for Conta, destaca o quadro de Valores Financeiros */}
+              {formData.itemType === 'conta' ? (
+                <div className="bg-amber-500/15 border border-amber-400/40 p-3.5 rounded-xl flex flex-col gap-3">
+                  <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">payments</span>
+                    <span>Informações Financeiras da Conta</span>
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <label className="text-xs font-bold text-white" htmlFor="value">
+                        {isEs ? 'Valor ($)' : isEn ? 'Amount ($)' : 'Valor (R$)'}
+                      </label>
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70 z-10 pointer-events-none">attach_money</span>
+                        <CurrencyInput 
+                          id="value"
+                          className="w-full bg-surface-container border border-amber-400/50 rounded-lg pl-10 pr-4 py-2.5 text-white outline-none transition-all placeholder:text-gray-400 focus:border-amber-300 focus:ring-1 focus:ring-amber-300 font-extrabold text-base"
+                          placeholder="0,00"
+                          showSymbol={true}
+                          value={formData.value || 0}
+                          onChange={numVal => setFormData({...formData, value: numVal})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <label className="text-xs font-bold text-white" htmlFor="valueStatus">
+                        {isEs ? 'Estado' : isEn ? 'Status' : 'Status da Conta'}
+                      </label>
+                      <div className="relative">
+                        <select 
+                          id="valueStatus"
+                          className="w-full bg-surface-container border border-amber-400/50 rounded-lg px-3 py-2.5 text-white appearance-none outline-none transition-all focus:border-amber-300 focus:ring-1 focus:ring-amber-300 font-bold text-sm"
+                          value={formData.valueStatus}
+                          onChange={e => setFormData({...formData, valueStatus: e.target.value as 'a_receber' | 'recebido' | 'a_pagar' | 'pago'})}
+                        >
+                          <option value="a_pagar">{isEs ? 'Por Pagar' : isEn ? 'To Pay' : 'A Pagar'}</option>
+                          <option value="pago">{isEs ? 'Pagado' : isEn ? 'Paid' : 'Pago'}</option>
+                          <option value="a_receber">{isEs ? 'Por Recibir' : isEn ? 'To Receive' : 'À Receber'}</option>
+                          <option value="recebido">{isEs ? 'Recibido' : isEn ? 'Received' : 'Recebido'}</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none">expand_more</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white" htmlFor="address">{isEs ? 'Dirección / Lugar' : isEn ? 'Address / Location' : 'Endereço / Local'}</label>
+                  <AddressLocationPicker
+                    id="address"
+                    value={formData.address || ''}
+                    onChange={(newAddress) => setFormData({...formData, address: newAddress})}
+                    isEs={isEs}
+                    isEn={isEn}
+                  />
+                </div>
+              )}
+
+              {formData.itemType === 'conta' && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white" htmlFor="address">{isEs ? 'Dirección / Lugar (Opcional)' : isEn ? 'Address / Location (Optional)' : 'Endereço / Local (Opcional)'}</label>
+                  <AddressLocationPicker
+                    id="address"
+                    value={formData.address || ''}
+                    onChange={(newAddress) => setFormData({...formData, address: newAddress})}
+                    isEs={isEs}
+                    isEn={isEn}
+                  />
+                </div>
+              )}
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white" htmlFor="contact">{isEs ? 'Teléfono / WhatsApp' : isEn ? 'Phone / WhatsApp' : 'Telefone / WhatsApp'}</label>
+                <label className="text-sm font-medium text-white" htmlFor="contact">
+                  {formData.itemType === 'conta'
+                    ? (isEs ? 'Contacto / Proveedor / Cliente' : isEn ? 'Contact / Vendor / Client' : 'Contato / Fornecedor / Cliente')
+                    : (isEs ? 'Teléfono / WhatsApp' : isEn ? 'Phone / WhatsApp' : 'Telefone / WhatsApp')
+                  }
+                </label>
                 <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70">call</span>
+                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
+                     {formData.itemType === 'conta' ? 'person' : 'call'}
+                   </span>
                    <input 
                       id="contact"
                       type="text" 
                       className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white"
-                      placeholder={isEs ? 'Ej: +55 11 99999-9999 (Opcional)' : isEn ? 'E.g., +1 555 123-4567 (Optional)' : 'Ex: +55 11 99999-9999 (Opcional)'}
+                      placeholder={formData.itemType === 'conta' ? 'Ex: Nome do Cliente, Loja, Banco' : 'Ex: +55 11 99999-9999 (Opcional)'}
                       value={formData.contact || ''}
                       onChange={e => setFormData({...formData, contact: e.target.value})}
                    />
@@ -5959,40 +6130,24 @@ ${notesDraft}`;
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex flex-col gap-2 flex-auto">
-                    <label className="text-sm font-medium text-white" htmlFor="value">{isEs ? 'Valor ($)' : isEn ? 'Amount ($)' : 'Valor (R$)'}</label>
-                    <div className="relative">
-                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70 z-10 pointer-events-none">payments</span>
-                      <CurrencyInput 
-                        id="value"
-                        className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white font-bold text-base"
-                        placeholder="0,00"
-                        showSymbol={true}
-                        value={formData.value || 0}
-                        onChange={numVal => setFormData({...formData, value: numVal})}
-                      />
+                {formData.itemType === 'compromisso' && (
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="flex flex-col gap-2 flex-auto">
+                      <label className="text-sm font-medium text-white" htmlFor="value">{isEs ? 'Valor ($)' : isEn ? 'Amount ($)' : 'Valor (R$)'}</label>
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/70 z-10 pointer-events-none">payments</span>
+                        <CurrencyInput 
+                          id="value"
+                          className="w-full bg-surface-container border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white outline-none transition-all placeholder:text-gray-400 focus:border-white focus:ring-1 focus:ring-white font-bold text-base"
+                          placeholder="0,00"
+                          showSymbol={true}
+                          value={formData.value || 0}
+                          onChange={numVal => setFormData({...formData, value: numVal})}
+                        />
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-col gap-2 flex-auto md:max-w-[200px]">
-                    <label className="text-sm font-medium text-white" htmlFor="valueStatus">{isEs ? 'Estado del Valor' : isEn ? 'Amount Status' : 'Status do Valor'}</label>
-                    <div className="relative">
-                      <select 
-                        id="valueStatus"
-                        className="w-full bg-surface-container border border-white/20 rounded-lg px-4 py-3 text-white appearance-none outline-none transition-all focus:border-white focus:ring-1 focus:ring-white"
-                        value={formData.valueStatus}
-                        onChange={e => setFormData({...formData, valueStatus: e.target.value as 'a_receber' | 'recebido' | 'a_pagar' | 'pago'})}
-                      >
-                        <option value="a_receber">{isEs ? 'Por Recibir' : isEn ? 'To Receive' : 'À Receber'}</option>
-                        <option value="recebido">{isEs ? 'Recibido' : isEn ? 'Received' : 'Recebido'}</option>
-                        <option value="a_pagar">{isEs ? 'Por Pagar' : isEn ? 'To Pay' : 'A Pagar'}</option>
-                        <option value="pago">{isEs ? 'Pagado' : isEn ? 'Paid' : 'Pago'}</option>
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-white pointer-events-none">expand_more</span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -6107,7 +6262,7 @@ ${notesDraft}`;
                         setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
                       }
                     }}
                     className="px-3 py-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-bold flex items-center justify-center gap-1.5 text-sm"
@@ -6122,7 +6277,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
                   }}
                   className="flex-1 py-3 rounded-lg border border-white/20 text-white hover:bg-surface-container-high transition-colors font-medium text-sm"
                 >

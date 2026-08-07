@@ -14,13 +14,14 @@ interface Appointment {
   notes?: string;
   reminders?: string[];
   color?: string;
+  itemType?: 'compromisso' | 'conta';
 }
 
 interface AccountsManagementViewProps {
   appointments: Appointment[];
   onNavigate: (view: string) => void;
   onEditAppointment: (app: any) => void;
-  onOpenModal: () => void;
+  onOpenModal: (type?: 'compromisso' | 'conta') => void;
   currentLang?: string;
   onLogout?: () => void;
 }
@@ -35,7 +36,14 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
   const currentDateStr = new Date().toISOString().split('T')[0];
   const currentMonthStr = currentDateStr.substring(0, 7);
 
-  const totalValueDay = appointments
+  // Strictly isolate financial accounts from general appointments
+  const accountAppointments = appointments.filter(app => {
+    if (app.itemType === 'conta') return true;
+    if (app.itemType === 'compromisso') return false;
+    return (app.value !== undefined && app.value !== null && app.value > 0) || Boolean(app.valueStatus);
+  });
+
+  const totalValueDay = accountAppointments
     .filter(app => app.date === currentDateStr)
     .reduce((totals, app) => {
       const val = app.value || 0;
@@ -46,7 +54,7 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
       return totals;
     }, { a_receber: 0, recebido: 0, a_pagar: 0, pago: 0 });
 
-  const totalValueMonth = appointments
+  const totalValueMonth = accountAppointments
     .filter(app => app.date.startsWith(currentMonthStr))
     .reduce((totals, app) => {
       const val = app.value || 0;
@@ -58,7 +66,7 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
     }, { a_receber: 0, recebido: 0, a_pagar: 0, pago: 0 });
 
   // Calculate totals
-  const totals = appointments.reduce((acc, app) => {
+  const totals = accountAppointments.reduce((acc, app) => {
     const val = app.value || 0;
     if (app.valueStatus === 'a_pagar') acc.a_pagar += val;
     else if (app.valueStatus === 'recebido') acc.recebido += val;
@@ -90,10 +98,7 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
   const isSearchActive = searchQuery.trim().length > 0;
 
   const accountSearchResults = isSearchActive
-    ? appointments.filter(app => {
-        const isAccount = (app.value !== undefined && app.value !== null) || !!app.valueStatus;
-        if (!isAccount) return false;
-
+    ? accountAppointments.filter(app => {
         const query = searchQuery.trim().toLowerCase();
         
         const [y, m, d] = (app.date || '').split('-');
@@ -125,8 +130,7 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
       }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     : [];
 
-  const filteredAppointments = appointments.filter(app => {
-    if (app.value === undefined || app.value === null) return false;
+  const filteredAppointments = accountAppointments.filter(app => {
     const status = app.valueStatus || 'a_receber';
     const searchLower = searchQuery.toLowerCase();
     const matchSearch = !searchQuery || 
@@ -212,9 +216,9 @@ export function AccountsManagementView({ appointments, onNavigate, onEditAppoint
               <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
               {isEs ? 'Gestión de Cuentas' : isEn ? 'Account Management' : 'Gestão de Contas'}
             </h1>
-            <button onClick={onOpenModal} className="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-sm">
+            <button onClick={() => onOpenModal('conta')} className="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-sm">
               <span className="material-symbols-outlined text-[20px]">add</span>
-              <span className="hidden sm:inline">{isEs ? 'Añadir' : isEn ? 'Add' : 'Adicionar'}</span>
+              <span className="hidden sm:inline">{isEs ? 'Nova Conta' : isEn ? 'New Account' : 'Nova Conta'}</span>
             </button>
           </div>
 
