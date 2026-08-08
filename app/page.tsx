@@ -563,41 +563,16 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
         <div className="flex items-center justify-center z-0 shrink-0 mx-2">
            <img alt="Sistema Ágio" style={{ mixBlendMode: 'multiply' }} className="w-auto object-contain h-[36px] sm:h-[40px] md:h-[61px] drop-shadow-[0_1px_2px_rgba(255,255,255,0.2)] rounded-2xl overflow-hidden" src="/399-agenda%20%C3%A1gio.png" />
         </div>
-        <div className="flex items-center justify-end z-10 flex-1 gap-4">
-          <div className="hidden md:flex items-center gap-4">
-            {onInstallPWA && (
-              <button
-                onClick={onInstallPWA}
-                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm hover:scale-105 cursor-pointer"
-                title="Instalar Aplicativo na Área de Trabalho"
-              >
-                <span className="material-symbols-outlined text-[18px] text-emerald-400">install_desktop</span>
-                <span>Instalar App</span>
-              </button>
-            )}
-            <button
-              onClick={() => setIsInstructionsModalOpen(true)}
-              className="text-label-sm font-label-sm text-white/90 hover:text-white flex items-center gap-1.5 hover:underline cursor-pointer"
+        <div className="flex items-center justify-end z-10 flex-1">
+          <div className="relative">
+            <button 
+              onClick={() => setIsLandingMobileMenuOpen(!isLandingMobileMenuOpen)} 
+              className="p-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center cursor-pointer border border-white/10 bg-black/10"
+              title="Menu"
             >
-              <span className="material-symbols-outlined text-[18px] text-green-400">menu_book</span>
-              Instruções de Uso
-            </button>
-            <button
-              onClick={onOpenSupport}
-              className="text-label-sm font-label-sm text-white/90 hover:text-white flex items-center gap-1.5 hover:underline cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-green-400">support_agent</span>
-              Ajuda & Suporte
-            </button>
-            <div className="h-4 w-px bg-white/20"></div>
-            <span className="text-label-sm font-label-sm text-white whitespace-nowrap">Já tem uma conta?</span>
-            <button onClick={() => setIsLoginModalOpen(true)} className="text-label-sm font-label-sm text-white font-bold hover:underline cursor-pointer">Entrar</button>
-          </div>
-          <div className="md:hidden relative">
-            <button onClick={() => setIsLandingMobileMenuOpen(!isLandingMobileMenuOpen)} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
               <span className="material-symbols-outlined text-[24px]">{isLandingMobileMenuOpen ? 'close' : 'menu'}</span>
             </button>
-            <div className={`absolute right-0 top-full mt-2 w-56 bg-[#132215] border border-white/20 rounded-xl shadow-2xl overflow-hidden flex flex-col p-2 gap-1 transition-all duration-200 z-[100] ${isLandingMobileMenuOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
+            <div className={`absolute right-0 top-full mt-2 w-64 bg-[#132215] border border-white/20 rounded-xl shadow-2xl overflow-hidden flex flex-col p-2 gap-1 transition-all duration-200 z-[100] ${isLandingMobileMenuOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-2 pointer-events-none'}`}>
               <span className="text-xs text-white/50 font-medium px-4 py-2 border-b border-white/10">Já tem uma conta?</span>
               <button 
                 onClick={() => { setIsLoginModalOpen(true); setIsLandingMobileMenuOpen(false); }} 
@@ -613,8 +588,8 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                   onClick={() => { onInstallPWA(); setIsLandingMobileMenuOpen(false); }}
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all text-left border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-emerald-400">install_mobile</span>
-                  Instalar App (Área de Trabalho)
+                  <span className="material-symbols-outlined text-[20px] text-emerald-400">install_desktop</span>
+                  Instalar Aplicativo na Área de Trabalho
                 </button>
               )}
               <button
