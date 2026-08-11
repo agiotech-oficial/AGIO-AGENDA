@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { NavigationBar } from '../components/NavigationBar';
 import { AffiliateLeads } from '../components/AffiliateLeads';
+import { getNormalizedMediaUrl, DEFAULT_MARKETING_MATERIALS } from '../lib/utils';
 
 interface AffiliateUser {
   id: string;
@@ -386,57 +387,105 @@ export function AffiliateView({
 
                 {/* Materiais de Divulgação */}
                 {(() => {
-                  const materials = JSON.parse(localStorage.getItem('agenda_marketing_materials') || '[]');
+                  const stored = localStorage.getItem('agenda_marketing_materials');
+                  const parsed = stored ? JSON.parse(stored) : [];
+                  const materials = parsed && parsed.length > 0 ? parsed : DEFAULT_MARKETING_MATERIALS;
                   if (materials.length === 0) return null;
                   return (
                     <div className="mt-5 flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl border border-white/20 text-left max-w-2xl mx-auto">
                       <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2 self-start"><span className="material-symbols-outlined text-white">campaign</span>Materiais de Divulgação</h4>
                       <p className="text-xs text-white/60 mb-4 self-start">Utilize os materiais prontos abaixo para impulsionar suas captações.</p>
                       <div className="flex flex-col gap-3 w-full">
-                        {materials.map((mat: any, i: number) => (
-                          <div key={i} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-white/20 hover:bg-white/10 transition-colors">
-                            <div className="p-2 bg-white/10 text-white rounded-full flex items-center justify-center">
-                              <span className="material-symbols-outlined text-[20px] text-white">
-                                {mat.type === 'video' ? 'movie' : mat.type === 'audio' ? 'music_note' : mat.type === 'text' ? 'article' : 'image'}
-                              </span>
-                            </div>
-                            <div className="flex-1 truncate w-full">
-                              <p className="text-sm font-bold text-white truncate">{mat.title}</p>
-                              {mat.type === 'text' ? (
-                                <p className="text-xs text-white/60 truncate">{mat.content}</p>
+                        {materials.map((mat: any, i: number) => {
+                          const normalizedUrl = getNormalizedMediaUrl(mat.content);
+                          return (
+                            <div key={i} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 rounded-lg border border-white/20 hover:bg-white/10 transition-colors">
+                              {mat.type === 'image' && normalizedUrl ? (
+                                <img 
+                                  src={normalizedUrl} 
+                                  alt={mat.title} 
+                                  className="w-16 h-16 object-cover rounded border border-white/20 bg-black/30 shrink-0"
+                                  onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                />
                               ) : (
-                                <p className="text-xs text-white/60 truncate">Download disponível</p>
+                                <div className="p-2 bg-white/10 text-white rounded-full flex items-center justify-center shrink-0">
+                                  <span className="material-symbols-outlined text-[20px] text-white">
+                                    {mat.type === 'video' ? 'movie' : mat.type === 'audio' ? 'music_note' : mat.type === 'text' ? 'article' : 'image'}
+                                  </span>
+                                </div>
                               )}
+                              <div className="flex-1 min-w-0 w-full space-y-1">
+                                <p className="text-sm font-bold text-white truncate">{mat.title || 'Sem título'}</p>
+                                {mat.description && (
+                                  <p className="text-xs text-white/80 bg-white/5 border border-white/10 p-1.5 rounded line-clamp-2">
+                                    {mat.description}
+                                  </p>
+                                )}
+                                {mat.type === 'text' ? (
+                                  <p className="text-xs text-white/60 truncate">{mat.content}</p>
+                                ) : (
+                                  <p className="text-[10px] text-white/40 truncate">{mat.content}</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 self-end sm:self-auto shrink-0 flex-wrap">
+                                {mat.description && mat.type !== 'text' && (
+                                  <button
+                                    onClick={() => {
+                                      const affiliateLink = window.location.href.split('?')[0] + '?ref=' + (currentUser || { id: 'demo123' }).id;
+                                      const copyText = `${mat.description}\n\nAcesse: ${affiliateLink}`;
+                                      navigator.clipboard.writeText(copyText);
+                                      alert('Legenda da arte copiada com seu link de afiliado inserido!');
+                                    }}
+                                    className="text-xs bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-3 py-1.5 rounded font-medium transition-colors border border-amber-400/30 flex items-center gap-1 cursor-pointer"
+                                    title="Copiar texto de legenda da imagem com seu link de afiliado"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">content_copy</span> Copiar Legenda
+                                  </button>
+                                )}
+                                {mat.type === 'text' ? (
+                                  <button
+                                    onClick={() => {
+                                      const affiliateLink = window.location.href.split('?')[0] + '?ref=' + (currentUser || { id: 'demo123' }).id;
+                                      const textToCopy = mat.description 
+                                        ? `${mat.content}\n\n${mat.description}\n\nAcesse: ${affiliateLink}`
+                                        : `${mat.content}\n\nAcesse: ${affiliateLink}`;
+                                      navigator.clipboard.writeText(textToCopy);
+                                      alert('Texto copiado com seu link de afiliado inserido no final!');
+                                    }}
+                                    className="text-xs bg-white/10 text-white hover:bg-white/20 px-3 py-1.5 rounded font-medium transition-colors border border-white/20 cursor-pointer"
+                                  >
+                                    Copiar Texto
+                                  </button>
+                                ) : (
+                                  <>
+                                    <a
+                                      href={normalizedUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs bg-white/10 text-white hover:bg-white/20 px-3 py-1.5 rounded font-medium transition-colors border border-white/20 flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px]">visibility</span> Visualizar
+                                    </a>
+                                    <a
+                                      href={normalizedUrl}
+                                      download={mat.title || 'material'}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 px-3 py-1.5 rounded font-medium transition-colors border border-emerald-400/30 flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px]">download</span> Baixar
+                                    </a>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex gap-2 self-end sm:self-auto">
-                              {mat.type === 'text' ? (
-                                <button
-                                  onClick={() => {
-                                    const affiliateLink = window.location.href.split('?')[0] + '?ref=' + (currentUser || { id: 'demo123' }).id;
-                                    navigator.clipboard.writeText(`${mat.content} Meu link: ${affiliateLink}`);
-                                    alert('Texto copiado com seu link de afiliado inserido no final!');
-                                  }}
-                                  className="text-xs bg-white/10 text-white hover:bg-white/20 px-3 py-1.5 rounded font-medium transition-colors border border-white/20 cursor-pointer"
-                                >
-                                  Copiar Texto
-                                </button>
-                              ) : (
-                                <a
-                                  href={mat.content}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs bg-white/10 text-white hover:bg-white/20 px-3 py-1.5 rounded font-medium transition-colors border border-white/20 flex items-center gap-1"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">download</span> Baixar
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })()}
+
               </div>
 
               {/* Saldo e Saque PIX */}

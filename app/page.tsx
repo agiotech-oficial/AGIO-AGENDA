@@ -81,6 +81,7 @@ interface Appointment {
 
 const shareAppointment = (app: Appointment) => {
   const formattedDate = new Date(app.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://agioagenda.app';
   let text = `Você foi convidado para o compromisso "${app.title}".
 
 📅 Data: ${formattedDate}
@@ -97,7 +98,7 @@ Para visualizar os detalhes e confirmar sua participação, é necessário ter u
 
 Ainda não tem uma conta?
 Cadastre-se agora para organizar sua rotina com eficiência e inicie seus 40 dias grátis. Acesse o link e faça parte:
-https://agioagenda.app/cadastro`;
+${appOrigin}`;
   
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
   window.open(whatsappUrl, '_blank');
@@ -105,12 +106,19 @@ https://agioagenda.app/cadastro`;
 
 const handleWhatsAppReminder = (app: Appointment) => {
   const formattedDate = new Date(app.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  const appOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://agioagenda.app';
   let text = `Olá! Passando para relembrar o nosso compromisso: "${app.title}".
 
 📅 Data: ${formattedDate}
 ⏰ Horário: ${app.time}`;
   if (app.address) text += `
 📍 Local: ${app.address}`;
+  if (app.notes) text += `
+📝 Observações: ${app.notes}`;
+  text += `
+
+Acesse o sistema para mais detalhes:
+${appOrigin}`;
   
   const formattedContact = app.contact ? app.contact.replace(/\D/g, '') : '';
   const whatsappUrl = formattedContact 

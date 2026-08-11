@@ -3,6 +3,7 @@ import { NavigationBar } from '../components/NavigationBar';
 import { ResourceUsageDashboard } from '../components/ResourceUsageDashboard';
 import { TouchButton } from './MainMenuView';
 import { CurrencyInput } from '../components/CurrencyInput';
+import { getNormalizedMediaUrl, DEFAULT_MARKETING_MATERIALS } from '../lib/utils';
 
 const generateBackupData = (type: 'complete' | 'system') => {
   const allSettings = typeof window !== 'undefined' ? (localStorage.getItem('agenda_settings') || '{}') : '{}';
@@ -111,7 +112,7 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
   const [isAdminTrackingModalOpen, setIsAdminTrackingModalOpen] = useState(false);
   const [trackingTab, setTrackingTab] = useState<'logs' | 'offers' | 'analytics'>('logs');
   const [trackingLogs, setTrackingLogs] = useState<any[]>([]);
-  const [marketingMaterials, setMarketingMaterials] = useState<{id: string, type: string, title: string, content: string}[]>([]);
+  const [marketingMaterials, setMarketingMaterials] = useState<{id: string, type: string, title: string, content: string, description?: string}[]>([]);
   const [supportReports, setSupportReports] = useState<any[]>([]);
   const [isCommissionModalOpen, setIsCommissionModalOpen] = useState(false);
   const [selectedUserForCommission, setSelectedUserForCommission] = useState<any>(null);
@@ -364,8 +365,12 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
     setWithdrawals(storedWithdrawals);
 
     const storedMaterials = JSON.parse(localStorage.getItem('agenda_marketing_materials') || '[]');
-     
-    setMarketingMaterials(storedMaterials);
+    if (!storedMaterials || storedMaterials.length === 0) {
+      setMarketingMaterials(DEFAULT_MARKETING_MATERIALS);
+      localStorage.setItem('agenda_marketing_materials', JSON.stringify(DEFAULT_MARKETING_MATERIALS));
+    } else {
+      setMarketingMaterials(storedMaterials);
+    }
 
     const storedReports = JSON.parse(localStorage.getItem('agenda_support_reports') || '[]');
      
@@ -1888,67 +1893,171 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
 
               {/* Materiais Upload */}
               <div className="bg-white rounded-xl p-5 border border-[#e5e7eb] shadow-sm">
-                <h4 className="font-bold text-[#111827] mb-2 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#ff954c]">perm_media</span>
-                  Gerenciar Materiais para Afiliados
-                </h4>
-                <p className="text-sm text-[#4b5563] mb-4">Adicione links de banners, folders, vídeos ou áudios que os afiliados poderão usar.</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                  <div>
+                    <h4 className="font-bold text-[#111827] flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#ff954c]">perm_media</span>
+                      Gerenciar Materiais para Afiliados
+                    </h4>
+                    <p className="text-sm text-[#4b5563]">Adicione imagens, vídeos, áudios ou textos promocionais que os afiliados poderão usar.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Deseja restaurar a lista com todas as artes padrão salvas no sistema?")) {
+                        setMarketingMaterials(DEFAULT_MARKETING_MATERIALS);
+                        localStorage.setItem('agenda_marketing_materials', JSON.stringify(DEFAULT_MARKETING_MATERIALS));
+                        alert("Artes padrão restauradas com sucesso!");
+                      }
+                    }}
+                    className="text-xs bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] px-3 py-1.5 rounded-lg border border-[#d1d5db] font-semibold transition-colors flex items-center gap-1 shrink-0"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">restart_alt</span> Restaurar Artes Padrão
+                  </button>
+                </div>
                 
                 <div className="space-y-4">
-                  {marketingMaterials.map((mat, idx) => (
-                    <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-[#f9fafb] p-3 rounded-lg border border-[#e5e7eb]">
-                      <div className="flex-1 w-full">
-                        <select 
-                          value={mat.type} 
-                          onChange={(e) => {
-                            const newMat = [...marketingMaterials];
-                            newMat[idx].type = e.target.value;
-                            setMarketingMaterials(newMat);
-                          }}
-                          className="w-full mb-2 bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827]"
-                        >
-                          <option value="image">Imagem / Banner / Folder</option>
-                          <option value="video">Vídeo</option>
-                          <option value="audio">Áudio</option>
-                          <option value="text">Texto Promocional</option>
-                        </select>
-                        <input 
-                          type="text" 
-                          placeholder="Título (ex: Banner 01)" 
-                          value={mat.title} 
-                          onChange={(e) => {
-                            const newMat = [...marketingMaterials];
-                            newMat[idx].title = e.target.value;
-                            setMarketingMaterials(newMat);
-                          }}
-                          className="w-full mb-2 bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827]" 
-                        />
-                        <input 
-                          type="text" 
-                          placeholder={mat.type === 'text' ? "Conteúdo do texto" : "URL do material"} 
-                          value={mat.content} 
-                          onChange={(e) => {
-                            const newMat = [...marketingMaterials];
-                            newMat[idx].content = e.target.value;
-                            setMarketingMaterials(newMat);
-                          }}
-                          className="w-full bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827]" 
-                        />
-                      </div>
-                      <button 
-                        onClick={() => {
-                          const newMat = marketingMaterials.filter((_, i) => i !== idx);
-                          setMarketingMaterials(newMat);
-                          localStorage.setItem('agenda_marketing_materials', JSON.stringify(newMat));
-                        }} 
-                        className="text-[#ef4444] hover:bg-[#fee2e2] p-2 rounded transition-colors self-end sm:self-auto"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                      </button>
-                    </div>
-                  ))}
+                  {marketingMaterials.map((mat, idx) => {
+                    const normUrl = getNormalizedMediaUrl(mat.content);
+                    return (
+                      <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start bg-[#f9fafb] p-3 rounded-lg border border-[#e5e7eb]">
+                        {mat.type === 'image' && (
+                          <div className="shrink-0 w-20 h-20 bg-[#e5e7eb] rounded overflow-hidden flex items-center justify-center border border-[#d1d5db]">
+                            {normUrl ? (
+                              <img 
+                                src={normUrl} 
+                                alt={mat.title || 'Preview'} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <span className="material-symbols-outlined text-gray-400">image</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex-1 w-full space-y-2">
+                          <div className="flex gap-2">
+                            <select 
+                              value={mat.type} 
+                              onChange={(e) => {
+                                const newMat = [...marketingMaterials];
+                                newMat[idx].type = e.target.value;
+                                setMarketingMaterials(newMat);
+                              }}
+                              className="bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827] font-medium"
+                            >
+                              <option value="image">Imagem / Banner / Folder</option>
+                              <option value="video">Vídeo</option>
+                              <option value="audio">Áudio</option>
+                              <option value="text">Texto Promocional</option>
+                            </select>
 
-                  <div className="flex gap-2 pt-2">
+                            {mat.type === 'image' && (
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    const newMat = [...marketingMaterials];
+                                    newMat[idx].content = e.target.value;
+                                    setMarketingMaterials(newMat);
+                                  }
+                                }}
+                                className="bg-white border border-[#d1d5db] px-2 py-1 rounded text-xs text-[#374151] flex-1 min-w-0"
+                              >
+                                <option value="">-- Selecionar Imagem do Sistema --</option>
+                                <option value="/arte_1_geral.jpg">Arte 1 - Ágio Agenda Geral</option>
+                                <option value="/arte2-agio_agenda.jpg">Arte 2 - Ágio Agenda</option>
+                                <option value="/arte_3-agio_agenda.jpg">Arte 3 - Ágio Agenda</option>
+                                <option value="/arte4-agio_agenda_.jpg">Arte 4 - Ágio Agenda</option>
+                                <option value="/arte_5-agio_agenda.jpg">Arte 5 - Ágio Agenda</option>
+                                <option value="/arte_4-(1)-agio_agenda.jpg">Arte 6 - Ágio Agenda (Variação)</option>
+                              </select>
+                            )}
+                          </div>
+
+                          <input 
+                            type="text" 
+                            placeholder="Título (ex: Banner 01)" 
+                            value={mat.title} 
+                            onChange={(e) => {
+                              const newMat = [...marketingMaterials];
+                              newMat[idx].title = e.target.value;
+                              setMarketingMaterials(newMat);
+                            }}
+                            className="w-full bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827]" 
+                          />
+
+                          <div className="flex gap-2 items-center">
+                            <input 
+                              type="text" 
+                              placeholder={mat.type === 'text' ? "Conteúdo do texto principal" : "URL ou caminho do arquivo (ex: /arte_1_geral.jpg)"} 
+                              value={mat.content} 
+                              onChange={(e) => {
+                                const newMat = [...marketingMaterials];
+                                newMat[idx].content = e.target.value;
+                                setMarketingMaterials(newMat);
+                              }}
+                              className="w-full bg-white border border-[#d1d5db] px-2 py-1 rounded text-sm text-[#111827]" 
+                            />
+
+                            {mat.type === 'image' && (
+                              <label className="bg-[#e5e7eb] hover:bg-[#d1d5db] text-[#374151] px-2.5 py-1 rounded text-xs font-semibold cursor-pointer shrink-0 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[16px]">upload_file</span> Enviar arquivo
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  className="hidden" 
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = (uploadEvt) => {
+                                        const result = uploadEvt.target?.result as string;
+                                        if (result) {
+                                          const newMat = [...marketingMaterials];
+                                          newMat[idx].content = result;
+                                          setMarketingMaterials(newMat);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+
+                          {/* Campo para Texto/Legenda de Apoio da Imagem ou Mídia */}
+                          <div>
+                            <textarea 
+                              placeholder={mat.type === 'text' ? "Observações ou detalhes do texto (opcional)" : "Texto / Legenda de apoio (será enviado ou copiado junto com este material)"} 
+                              value={mat.description || ''} 
+                              onChange={(e) => {
+                                const newMat = [...marketingMaterials];
+                                newMat[idx].description = e.target.value;
+                                setMarketingMaterials(newMat);
+                              }}
+                              rows={2}
+                              className="w-full bg-white border border-[#d1d5db] p-2 rounded text-xs text-[#111827] focus:ring-1 focus:ring-[#ff954c] outline-none resize-y" 
+                            />
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => {
+                            const newMat = marketingMaterials.filter((_, i) => i !== idx);
+                            setMarketingMaterials(newMat);
+                            localStorage.setItem('agenda_marketing_materials', JSON.stringify(newMat));
+                          }} 
+                          className="text-[#ef4444] hover:bg-[#fee2e2] p-2 rounded transition-colors self-end sm:self-auto shrink-0"
+                          title="Excluir Material"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <button 
                       onClick={() => {
                         setMarketingMaterials([...marketingMaterials, {id: Math.random().toString(), type: 'image', title: '', content: ''}]);
@@ -1959,10 +2068,15 @@ export function AdminDashboardView({ onNavigate, appColor, setAppColor, appBgIma
                     </button>
                     <button 
                       onClick={() => {
-                         localStorage.setItem('agenda_marketing_materials', JSON.stringify(marketingMaterials));
-                         alert("Materiais salvos com sucesso!");
+                        const normalized = marketingMaterials.map(m => ({
+                          ...m,
+                          content: m.type === 'text' ? m.content : getNormalizedMediaUrl(m.content)
+                        }));
+                        setMarketingMaterials(normalized);
+                        localStorage.setItem('agenda_marketing_materials', JSON.stringify(normalized));
+                        alert("Materiais salvos com sucesso!");
                       }}
-                      className="bg-[#1f2937] text-white hover:bg-[#374151] px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex justify-center items-center gap-1 w-full"
+                      className="bg-[#ff954c] text-white hover:bg-[#e8813a] px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex justify-center items-center gap-1 w-full shadow-sm"
                     >
                       <span className="material-symbols-outlined text-[18px]">save</span> Salvar Alterações
                     </button>

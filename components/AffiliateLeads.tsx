@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { getNormalizedMediaUrl, DEFAULT_MARKETING_MATERIALS } from '../lib/utils';
 
 export interface Lead {
+
   id: string;
   name: string;
   phone: string;
@@ -35,12 +37,18 @@ export function AffiliateLeads({ affiliateId }: { affiliateId: string }) {
       setLeads(JSON.parse(saved));
     }
     const mats = localStorage.getItem('agenda_marketing_materials');
+    let parsedMats = DEFAULT_MARKETING_MATERIALS;
     if (mats) {
-      const parsedMats = JSON.parse(mats);
-      setMarketingMaterials(parsedMats);
-      if (parsedMats.length > 0) {
-        setSelectedMaterialId(parsedMats[0].id);
-      }
+      try {
+        const parsed = JSON.parse(mats);
+        if (parsed && parsed.length > 0) {
+          parsedMats = parsed;
+        }
+      } catch (e) {}
+    }
+    setMarketingMaterials(parsedMats);
+    if (parsedMats.length > 0) {
+      setSelectedMaterialId(parsedMats[0].id);
     }
     
     const savedSends = localStorage.getItem(`agenda_affiliate_daily_sends_${affiliateId}`);
@@ -181,17 +189,28 @@ export function AffiliateLeads({ affiliateId }: { affiliateId: string }) {
     if (!mat) {
       return `Conheça este aplicativo incrível! Acesse: ${affiliateLink}`;
     }
+
+    const normalizedPath = getNormalizedMediaUrl(mat.content);
+    const fullMediaUrl = normalizedPath.startsWith('http') 
+      ? normalizedPath 
+      : ((typeof window !== 'undefined' ? window.location.origin : '') + normalizedPath);
     
     if (mat.type === 'text') {
-      return `${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
+      const mainText = mat.content;
+      const subText = mat.description ? `\n\n${mat.description}` : '';
+      return `${mainText}${subText}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
     } else if (mat.type === 'image') {
-      return `Confira nossa imagem de divulgação: ${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
+      const caption = mat.description ? `${mat.description}\n\n` : '';
+      return `${caption}Confira nossa imagem de divulgação: ${fullMediaUrl}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
     } else if (mat.type === 'video') {
-      return `Confira nosso vídeo explicativo: ${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
+      const caption = mat.description ? `${mat.description}\n\n` : '';
+      return `${caption}Confira nosso vídeo explicativo: ${fullMediaUrl}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
     } else if (mat.type === 'audio') {
-      return `Ouça nosso áudio de divulgação: ${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
+      const caption = mat.description ? `${mat.description}\n\n` : '';
+      return `${caption}Ouça nosso áudio de divulgação: ${fullMediaUrl}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
     }
-    return `${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
+    const caption = mat.description ? `${mat.description}\n\n` : '';
+    return `${caption}${mat.content}\n\nConheça este aplicativo incrível! Acesse: ${affiliateLink}`;
   };
 
   const copySocialLink = () => {
@@ -430,6 +449,7 @@ export function AffiliateLeads({ affiliateId }: { affiliateId: string }) {
           {selectedMaterialId && (() => {
             const mat = marketingMaterials.find(m => m.id === selectedMaterialId);
             if (!mat) return null;
+            const normalizedUrl = getNormalizedMediaUrl(mat.content);
             if (mat.type === 'image') {
               return (
                 <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col items-center gap-2">
@@ -439,62 +459,97 @@ export function AffiliateLeads({ affiliateId }: { affiliateId: string }) {
                   </p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
-                    src={mat.content} 
+                    src={normalizedUrl} 
                     alt={mat.title} 
                     className="max-h-64 object-contain rounded-lg border border-white/10 shadow-lg bg-white/5"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div className="w-full flex justify-between items-center mt-1">
-                    <span className="text-[10px] text-white/40 truncate max-w-[70%]">{mat.content}</span>
-                    <a 
-                      href={mat.content} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs text-blue-400 hover:underline flex items-center gap-1"
-                    >
-                      Abrir link <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                    </a>
+                  {mat.description && (
+                    <div className="w-full mt-2 p-2 bg-white/5 border border-white/10 rounded-lg text-left">
+                      <p className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">chat_bubble_outline</span> Texto / Legenda de Apoio
+                      </p>
+                      <p className="text-xs text-white/90">{mat.description}</p>
+                    </div>
+                  )}
+                  <div className="w-full flex justify-between items-center mt-1 flex-wrap gap-2">
+                    <span className="text-[10px] text-white/40 truncate max-w-[50%]">{mat.content}</span>
+                    <div className="flex gap-2">
+                      <a 
+                        href={normalizedUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        Abrir <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                      </a>
+                      <a 
+                        href={normalizedUrl} 
+                        download={mat.title || 'imagem'} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        Baixar <span className="material-symbols-outlined text-[12px]">download</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               );
             }
             if (mat.type === 'video') {
               return (
-                <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-red-500 text-3xl">play_circle</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">Vídeo de Divulgação</p>
-                    <p className="text-[10px] text-white/50 truncate">{mat.content}</p>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-red-500 text-3xl">play_circle</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white">Vídeo de Divulgação</p>
+                      <p className="text-[10px] text-white/50 truncate">{mat.content}</p>
+                    </div>
+                    <a 
+                      href={normalizedUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      Assistir Vídeo <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                    </a>
                   </div>
-                  <a 
-                    href={mat.content} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1"
-                  >
-                    Assistir Vídeo <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                  </a>
+                  {mat.description && (
+                    <div className="p-2 bg-white/5 border border-white/10 rounded-lg text-left">
+                      <p className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider mb-1">Legenda do Vídeo</p>
+                      <p className="text-xs text-white/90">{mat.description}</p>
+                    </div>
+                  )}
                 </div>
               );
             }
             if (mat.type === 'audio') {
               return (
-                <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-green-500 text-3xl">volume_up</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white">Áudio de Divulgação</p>
-                    <p className="text-[10px] text-white/50 truncate">{mat.content}</p>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-green-500 text-3xl">volume_up</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white">Áudio de Divulgação</p>
+                      <p className="text-[10px] text-white/50 truncate">{mat.content}</p>
+                    </div>
+                    <a 
+                      href={normalizedUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      Ouvir Áudio <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                    </a>
                   </div>
-                  <a 
-                    href={mat.content} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded transition-colors flex items-center gap-1"
-                  >
-                    Ouvir Áudio <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                  </a>
+                  {mat.description && (
+                    <div className="p-2 bg-white/5 border border-white/10 rounded-lg text-left">
+                      <p className="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider mb-1">Legenda do Áudio</p>
+                      <p className="text-xs text-white/90">{mat.description}</p>
+                    </div>
+                  )}
                 </div>
               );
             }
