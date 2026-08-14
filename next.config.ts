@@ -5,10 +5,24 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  turbopack: {},
+  // Allow AI Studio preview domains for cross-origin dev assets
+  crossOrigin: 'anonymous',
   // Security Headers configuration
   async headers() {
     return [
+      {
+        source: '/_next/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, OPTIONS',
+          },
+        ],
+      },
       {
         source: '/:path*',
         headers: [
