@@ -5,8 +5,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  turbopack: {},
   // Allow AI Studio preview domains for cross-origin dev assets
   crossOrigin: 'anonymous',
+  allowedDevOrigins: [
+    'ais-dev-bo4qpewrlp4hiam6735x6k-493936202406.us-west2.run.app',
+    'ais-pre-bo4qpewrlp4hiam6735x6k-493936202406.us-west2.run.app',
+    '*.run.app',
+    'localhost:3000',
+    '127.0.0.1:3000',
+  ],
   // Security Headers configuration
   async headers() {
     return [
