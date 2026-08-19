@@ -1,12 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../src/db";
 import { appointments } from "../../../src/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { sanitizeInput } from "../../../lib/security";
 import fs from "fs";
 import path from "path";
 
+let appointmentsTableEnsured = false;
+
+async function ensureAppointmentsTable() {
+  if (appointmentsTableEnsured) return true;
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        category TEXT NOT NULL,
+        address TEXT,
+        contact TEXT,
+        notes TEXT,
+        value TEXT,
+        value_status TEXT,
+        reminders TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      );
+    `);
+    appointmentsTableEnsured = true;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 const DATA_FILE = path.join(process.cwd(), 'data', 'appointments.json');
+
 
 function getFileAppointments(): Record<string, any[]> {
   try {
@@ -43,6 +73,7 @@ function parseRecord(r: any) {
 
 export async function GET(req: NextRequest) {
   try {
+    await ensureAppointmentsTable();
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
@@ -56,6 +87,7 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       // DB offline, proceed to file storage
     }
+
 
     if (result.length === 0) {
       const fileData = getFileAppointments();
@@ -72,8 +104,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureAppointmentsTable();
     const body = await req.json();
     const userId = sanitizeInput(body.userId || '');
+
     if (!userId) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
