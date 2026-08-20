@@ -1,11 +1,9 @@
 {
-  "projectId": "gen-lang-client-0127329367",
-  "appId": "1:578638909048:web:6f1017ae6593ffdf00278d",
-  "apiKey": "AIzaSyDjnZcA9I2LE4BlTwejbTeXaT4z77kKMik",
-  "authDomain": "gen-lang-client-0127329367.firebaseapp.com",
-  "storageBucket": "gen-lang-client-0127329367.firebasestorage.app",
-  "messagingSenderId": "578638909048",
-  "measurementId": "",
-  "oAuthClientId": "578638909048-01v5ke5e8plc17gl4a2sg0ul1lg4vunn.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "agio-agenda-de73b",
+  "appId": "1:184695919004:web:7491d7df0676a70485f859",
+  "storageBucket": "agio-agenda-de73b.firebasestorage.app",
+  "apiKey": "AIzaSyD_X9WOjGMjW7Fdsp9TKLUbhv4skS5hcRc",
+  "authDomain": "agio-agenda-de73b.firebaseapp.com",
+  "messagingSenderId": "184695919004",
+  "measurementId": "G-BTPRTRQVS5"
 }
