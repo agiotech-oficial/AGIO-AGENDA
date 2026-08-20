@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../src/db";
 import { appointments } from "../../../src/db/schema";
+import { getMySQLAppointments, saveMySQLAppointments, deleteMySQLAppointment } from "../../../src/db/mysqlOperations";
 import { eq, sql } from "drizzle-orm";
 import { sanitizeInput } from "../../../lib/security";
 import fs from "fs";
@@ -73,22 +74,36 @@ function parseRecord(r: any) {
 
 export async function GET(req: NextRequest) {
   try {
-    await ensureAppointmentsTable();
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
 
     let result: any[] = [];
+
+    // First try MySQL (Hostinger DB)
     try {
-      const records = await db.select().from(appointments).where(eq(appointments.userId, userId));
-      if (records && records.length > 0) {
-        result = records.map(parseRecord);
+      const mysqlApps = await getMySQLAppointments(userId);
+      if (mysqlApps && mysqlApps.length > 0) {
+        result = mysqlApps;
       }
     } catch (e) {
-      // DB offline, proceed to file storage
+      // ignore
     }
 
+    // Next try Postgres DB
+    if (result.length === 0) {
+      try {
+        await ensureAppointmentsTable();
+        const records = await db.select().from(appointments).where(eq(appointments.userId, userId));
+        if (records && records.length > 0) {
+          result = records.map(parseRecord);
+        }
+      } catch (e) {
+        // DB offline, proceed to file storage
+      }
+    }
 
+    // Finally fallback to local file
     if (result.length === 0) {
       const fileData = getFileAppointments();
       if (fileData[userId] && Array.isArray(fileData[userId])) {
@@ -104,7 +119,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await ensureAppointmentsTable();
     const body = await req.json();
     const userId = sanitizeInput(body.userId || '');
 
@@ -134,7 +148,15 @@ export async function POST(req: NextRequest) {
       fileData[userId] = sanitizedApps;
       saveFileAppointments(fileData);
 
+      // Save to MySQL
       try {
+        await saveMySQLAppointments(userId, sanitizedApps);
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        await ensureAppointmentsTable();
         await db.delete(appointments).where(eq(appointments.userId, userId));
         if (sanitizedApps.length > 0) {
           await db.insert(appointments).values(
@@ -186,7 +208,15 @@ export async function POST(req: NextRequest) {
     fileData[userId] = userList;
     saveFileAppointments(fileData);
 
+    // Save to MySQL
     try {
+      await saveMySQLAppointments(userId, userList);
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      await ensureAppointmentsTable();
       await db.insert(appointments).values({
         userId,
         title: newItem.title,
@@ -275,6 +305,11 @@ export async function DELETE(req: NextRequest) {
       if (fileData[userId]) {
         fileData[userId] = fileData[userId].filter((item: any) => String(item.id) !== String(id));
         saveFileAppointments(fileData);
+      }
+      try {
+        await deleteMySQLAppointment(userId, String(id));
+      } catch (e) {
+        // ignore
       }
     }
 

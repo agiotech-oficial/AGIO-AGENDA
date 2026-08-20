@@ -35,7 +35,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body suppressHydrationWarning className="bg-background text-on-background min-h-screen">
-         <div id="google_translate_element" style={{ display: 'none' }}></div>
+         <div id="google_translate_element" suppressHydrationWarning style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '1px', height: '1px', overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}></div>
          <GoogleTranslateScript />
          <SecurityGuard>
            {children}

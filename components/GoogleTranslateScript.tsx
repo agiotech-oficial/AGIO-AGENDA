@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from 'react';
+import { triggerGoogleTranslate } from './LanguageSelector';
 
 declare global {
   interface Window {
@@ -12,7 +13,7 @@ export const GoogleTranslateScript = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Helper to enforce notranslate on material icons and restore translated icons
+    // Helper to enforce notranslate on material symbols and keep icons intact
     const protectIcons = () => {
       try {
         const iconElements = document.querySelectorAll('.material-symbols-outlined, [class*="material-symbols"]');
@@ -25,7 +26,6 @@ export const GoogleTranslateScript = () => {
             htmlEl.setAttribute('translate', 'no');
           }
 
-          // Check data-icon
           let dataIcon = htmlEl.getAttribute('data-icon');
           if (!dataIcon) {
             const currentText = htmlEl.textContent?.trim();
@@ -48,7 +48,6 @@ export const GoogleTranslateScript = () => {
       }
     };
 
-    // Run protectIcons initially and on MutationObserver
     protectIcons();
     const observer = new MutationObserver(() => {
       protectIcons();
@@ -60,31 +59,19 @@ export const GoogleTranslateScript = () => {
       characterData: true
     });
 
-    // Function to trigger Google Translate combo change
-    const applyLanguage = () => {
+    const applySavedLanguage = () => {
       try {
         protectIcons();
-        const savedLang = localStorage.getItem('user_language');
-        const decodedCookie = decodeURIComponent(document.cookie);
-        const cookieMatch = decodedCookie.match(/googtrans=\/(?:pt|auto)\/([a-z]{2})/);
-        const targetLang = savedLang || (cookieMatch ? cookieMatch[1] : 'pt');
-
-        if (targetLang) {
-          const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-          if (select) {
-            const valToSet = targetLang === 'pt' ? 'pt' : targetLang;
-            if (select.value !== valToSet && select.value !== targetLang) {
-              select.value = valToSet;
-              select.dispatchEvent(new Event('change'));
-            }
-          }
+        const savedLang = localStorage.getItem('user_language') || 'pt';
+        if (savedLang !== 'pt') {
+          triggerGoogleTranslate(savedLang);
         }
       } catch (e) {
         // ignore
       }
     };
 
-    // Define Google Translate init callback
+    // Google Translate Initialization
     window.googleTranslateElementInit = function() {
       try {
         if (window.google && window.google.translate && window.google.translate.TranslateElement) {
@@ -95,15 +82,16 @@ export const GoogleTranslateScript = () => {
             autoDisplay: false
           }, 'google_translate_element');
 
-          setTimeout(applyLanguage, 300);
-          setTimeout(applyLanguage, 1000);
+          setTimeout(applySavedLanguage, 100);
+          setTimeout(applySavedLanguage, 400);
+          setTimeout(applySavedLanguage, 1000);
         }
       } catch (e) {
         console.error('Error initializing Google Translate:', e);
       }
     };
 
-    // Inject Google Translate script after initial hydration
+    // Load Google Translate script dynamically if not present
     const loadScript = () => {
       if (!document.getElementById('google-translate-script')) {
         const script = document.createElement('script');
@@ -111,29 +99,28 @@ export const GoogleTranslateScript = () => {
         script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
         script.async = true;
         document.body.appendChild(script);
+      } else if (window.google?.translate?.TranslateElement) {
+        applySavedLanguage();
       }
     };
 
-    const timerInit = setTimeout(() => {
-      loadScript();
-    }, 100);
+    loadScript();
 
-    const timer1 = setTimeout(applyLanguage, 600);
-    const timer2 = setTimeout(applyLanguage, 1500);
-    const timer3 = setTimeout(applyLanguage, 3000);
+    const timer1 = setTimeout(applySavedLanguage, 300);
+    const timer2 = setTimeout(applySavedLanguage, 800);
+    const timer3 = setTimeout(applySavedLanguage, 2000);
 
     const handleLangChange = () => {
       setTimeout(() => {
         protectIcons();
-        applyLanguage();
-      }, 100);
+        applySavedLanguage();
+      }, 50);
     };
 
     window.addEventListener('appLanguageChanged', handleLangChange);
 
     return () => {
       observer.disconnect();
-      clearTimeout(timerInit);
       clearTimeout(timer1);
       clearTimeout(timer2);
       clearTimeout(timer3);
@@ -143,5 +130,3 @@ export const GoogleTranslateScript = () => {
 
   return null;
 };
-
-

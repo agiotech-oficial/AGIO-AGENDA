@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../src/db";
 import { users } from "../../../src/db/schema";
+import { getMySQLUser, getAllMySQLUsers, saveMySQLUser } from "../../../src/db/mysqlOperations";
 import { eq, or, sql } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
@@ -183,6 +184,7 @@ export async function GET(req: NextRequest) {
     const localUsers = getLocalUsers();
 
     if (all === 'true' || searchParams.has('all')) {
+      const mysqlUsers = await getAllMySQLUsers();
       const canQuery = await ensureUsersTable();
       let dbUsers: any[] = [];
       if (canQuery) {
@@ -192,13 +194,20 @@ export async function GET(req: NextRequest) {
           dbUsers = [];
         }
       }
-      // Merge DB users and local users
+      // Merge MySQL users, DB users and local users
       const map = new Map<string, any>();
-      localUsers.forEach(u => {
+      localUsers.forEach((u: any) => {
         const key = u.email ? u.email.toLowerCase().trim() : u.firebaseUid;
         if (key) map.set(key, u);
       });
-      dbUsers.forEach(u => {
+      mysqlUsers.forEach((u: any) => {
+        const key = u.email ? u.email.toLowerCase().trim() : u.firebaseUid;
+        if (key) {
+          const existing = map.get(key);
+          map.set(key, { ...existing, ...u });
+        }
+      });
+      dbUsers.forEach((u: any) => {
         const key = u.email ? u.email.toLowerCase().trim() : u.firebaseUid;
         if (key) {
           const existing = map.get(key);
@@ -211,15 +220,21 @@ export async function GET(req: NextRequest) {
     // Single user lookup
     let userFound: any = null;
 
-    // First check local file storage
-    if (firebaseUid || emailParam) {
+    // First check MySQL (Hostinger DB)
+    const mysqlUser = await getMySQLUser(firebaseUid, emailParam);
+    if (mysqlUser) {
+      userFound = mysqlUser;
+    }
+
+    // Then check local file storage if not in MySQL
+    if (!userFound && (firebaseUid || emailParam)) {
       userFound = localUsers.find(u => 
         (firebaseUid && u.firebaseUid === firebaseUid) || 
         (emailParam && u.email && u.email.toLowerCase().trim() === emailParam)
       );
     }
 
-    // Next check DB if available
+    // Next check Postgres DB if available
     const canQuery = await ensureUsersTable();
     if (canQuery) {
       try {
@@ -315,7 +330,14 @@ export async function POST(req: NextRequest) {
     // Always update local persistent file
     const savedLocal = updateOrInsertLocalUser(dataToSet);
 
-    // Also update DB if available
+    // Save to MySQL (Hostinger DB)
+    try {
+      await saveMySQLUser(dataToSet);
+    } catch (mysqlErr) {
+      console.warn("MySQL user save error:", mysqlErr);
+    }
+
+    // Also update Postgres DB if available
     const canQuery = await ensureUsersTable();
     if (canQuery) {
       try {
