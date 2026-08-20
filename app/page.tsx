@@ -512,14 +512,14 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
   }, []);
 
   useEffect(() => {
-    fetch('https://ipapi.co/json/')
+    fetch('/api/ip')
       .then(res => res.json())
       .then(data => {
         if (data.city) setCity(data.city);
-        if (data.region_code) setState(data.region_code);
-        if (data.country_name) setCountry(data.country_name);
+        if (data.region_code || data.region) setState(data.region_code || data.region);
+        if (data.country_name || data.country) setCountry(data.country_name || data.country);
       })
-      .catch((e) => console.log('Location fetch failed', e));
+      .catch(() => {});
   }, []);
 
   const isAnyLandingModalActive = isLoginModalOpen || isInstructionsModalOpen || !!selectedModuleDetail || !!selectedCommissionDetail || isVideoModalOpen;

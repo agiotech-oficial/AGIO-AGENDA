@@ -15,13 +15,13 @@ let cachedIpInfo = { ip: 'unknown', location: 'unknown' };
 
 if (typeof window !== 'undefined') {
   // Try to fetch location
-  fetch('https://ipapi.co/json/')
+  fetch('/api/ip')
     .then(r => r.json())
     .then(data => {
       if (data.ip) {
         cachedIpInfo = {
           ip: data.ip,
-          location: `${data.city || 'Desconhecido'}, ${data.region || ''} - ${data.country_name || ''}`
+          location: data.location || `${data.city || 'Desconhecido'}, ${data.region || ''} - ${data.country_name || ''}`
         };
       }
     })

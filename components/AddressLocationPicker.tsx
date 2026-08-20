@@ -330,11 +330,11 @@ export default function AddressLocationPicker({
   // Fallback to IP location if browser GPS fails or permission is denied
   const fallbackIpLocation = async () => {
     try {
-      const res = await fetch('https://ipapi.co/json/');
+      const res = await fetch('/api/ip');
       if (res.ok) {
         const data = await res.json();
-        if (data && data.city) {
-          const ipAddr = `${data.city}, ${data.region || ''} - ${data.country_name || ''}`.replace(/ - $/, '');
+        if (data && (data.city || data.location !== 'Desconhecido')) {
+          const ipAddr = data.location !== 'Desconhecido' ? data.location : `${data.city}, ${data.region || ''} - ${data.country_name || ''}`.replace(/ - $/, '');
           onChange(ipAddr);
           if (data.latitude && data.longitude) {
             setCoords({ lat: data.latitude, lng: data.longitude });
@@ -351,7 +351,7 @@ export default function AddressLocationPicker({
         }
       }
     } catch (e) {
-      console.warn('IP location fallback error:', e);
+      // Graceful fallback
     }
     return false;
   };

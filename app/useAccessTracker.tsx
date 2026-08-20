@@ -21,24 +21,23 @@ export function useAccessTracker(currentUser: any) {
         let city = '', state = '', country = '', neighborhood = '';
 
         try {
-          const response = await fetch('https://ipapi.co/json/');
+          const response = await fetch('/api/ip');
           if (response.ok) {
             const data = await response.json();
             ip = data.ip || 'Desconhecido';
             city = data.city || '';
-            state = data.region || '';
-            country = data.country_name || '';
-            neighborhood = ''; // ipapi doesn't always give neighborhood, but we get what we can
-            location = [city, state, country].filter(Boolean).join(', ');
+            state = data.region || data.region_code || '';
+            country = data.country_name || data.country || '';
+            neighborhood = '';
+            location = data.location || [city, state, country].filter(Boolean).join(', ') || 'Desconhecido';
           }
         } catch (e) {
-          console.warn("Failed to fetch IP:", e);
+          // Graceful fallback
         }
 
         const logs = JSON.parse(localStorage.getItem('agenda_tracking_logs') || '[]');
         
         // Find existing users to get demographic info if currentUser is not passed
-        const users = JSON.parse(localStorage.getItem('agenda_users') || '[]');
         let demographicData = {};
         if (currentUser) {
            demographicData = {
@@ -48,7 +47,6 @@ export function useAccessTracker(currentUser: any) {
               deviceId: currentUser.deviceId,
            };
         } else {
-           // Maybe we can get device ID from local storage
            const deviceId = localStorage.getItem('agenda_device_id') || 'unknown';
            demographicData = { deviceId };
         }
@@ -75,7 +73,7 @@ export function useAccessTracker(currentUser: any) {
         sessionStorage.setItem('agenda_session_tracked', 'true');
         trackedRef.current = true;
       } catch (err) {
-        console.error("Error tracking access", err);
+        // Silent error handling for telemetry
       }
     };
 
