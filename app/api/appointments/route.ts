@@ -68,7 +68,13 @@ function parseRecord(r: any) {
     ...r,
     id: String(r.id),
     value: r.value !== undefined && r.value !== null && r.value !== '' ? Number(r.value) : undefined,
-    reminders: typeof r.reminders === 'string' ? (r.reminders ? JSON.parse(r.reminders) : []) : (Array.isArray(r.reminders) ? r.reminders : [])
+    reminders: typeof r.reminders === 'string' ? (r.reminders ? JSON.parse(r.reminders) : []) : (Array.isArray(r.reminders) ? r.reminders : []),
+    itemType: r.itemType || ((r.value !== undefined && r.value !== null && r.value > 0) || r.valueStatus ? 'conta' : 'compromisso'),
+    color: r.color || '#10b981',
+    alarmType: r.alarmType || 'text',
+    customAudioUrl: r.customAudioUrl || undefined,
+    googleDocId: r.googleDocId || undefined,
+    googleDocUrl: r.googleDocUrl || undefined
   };
 }
 
@@ -140,9 +146,15 @@ export async function POST(req: NextRequest) {
         address: a.address ? sanitizeInput(a.address) : undefined,
         contact: a.contact ? sanitizeInput(a.contact) : undefined,
         notes: a.notes ? sanitizeInput(a.notes) : undefined,
-        value: a.value !== undefined && a.value !== null ? Number(a.value) : undefined,
+        value: a.value !== undefined && a.value !== null && a.value !== '' ? Number(a.value) : undefined,
         valueStatus: a.valueStatus ? sanitizeInput(a.valueStatus) : undefined,
-        reminders: Array.isArray(a.reminders) ? a.reminders : []
+        reminders: Array.isArray(a.reminders) ? a.reminders : [],
+        itemType: a.itemType === 'conta' ? 'conta' : 'compromisso',
+        color: a.color ? sanitizeInput(a.color) : '#10b981',
+        alarmType: a.alarmType === 'sound' ? 'sound' : 'text',
+        customAudioUrl: a.customAudioUrl || undefined,
+        googleDocId: a.googleDocId || undefined,
+        googleDocUrl: a.googleDocUrl || undefined
       }));
 
       fileData[userId] = sanitizedApps;
@@ -193,9 +205,15 @@ export async function POST(req: NextRequest) {
       address: body.address ? sanitizeInput(body.address) : undefined,
       contact: body.contact ? sanitizeInput(body.contact) : undefined,
       notes: body.notes ? sanitizeInput(body.notes) : undefined,
-      value: body.value !== undefined && body.value !== null ? Number(body.value) : undefined,
+      value: body.value !== undefined && body.value !== null && body.value !== '' ? Number(body.value) : undefined,
       valueStatus: body.valueStatus ? sanitizeInput(body.valueStatus) : undefined,
-      reminders: Array.isArray(body.reminders) ? body.reminders : []
+      reminders: Array.isArray(body.reminders) ? body.reminders : [],
+      itemType: body.itemType === 'conta' ? 'conta' : 'compromisso',
+      color: body.color ? sanitizeInput(body.color) : '#10b981',
+      alarmType: body.alarmType === 'sound' ? 'sound' : 'text',
+      customAudioUrl: body.customAudioUrl || undefined,
+      googleDocId: body.googleDocId || undefined,
+      googleDocUrl: body.googleDocUrl || undefined
     };
 
     const userList = fileData[userId] || [];
@@ -262,9 +280,15 @@ export async function PUT(req: NextRequest) {
         address: body.address !== undefined ? (body.address ? sanitizeInput(body.address) : undefined) : userList[index].address,
         contact: body.contact !== undefined ? (body.contact ? sanitizeInput(body.contact) : undefined) : userList[index].contact,
         notes: body.notes !== undefined ? (body.notes ? sanitizeInput(body.notes) : undefined) : userList[index].notes,
-        value: body.value !== undefined ? (body.value !== null ? Number(body.value) : undefined) : userList[index].value,
+        value: body.value !== undefined ? (body.value !== null && body.value !== '' ? Number(body.value) : undefined) : userList[index].value,
         valueStatus: body.valueStatus !== undefined ? (body.valueStatus ? sanitizeInput(body.valueStatus) : undefined) : userList[index].valueStatus,
         reminders: Array.isArray(body.reminders) ? body.reminders : userList[index].reminders,
+        itemType: body.itemType ? (body.itemType === 'conta' ? 'conta' : 'compromisso') : userList[index].itemType,
+        color: body.color ? sanitizeInput(body.color) : userList[index].color,
+        alarmType: body.alarmType ? (body.alarmType === 'sound' ? 'sound' : 'text') : userList[index].alarmType,
+        customAudioUrl: body.customAudioUrl !== undefined ? body.customAudioUrl : userList[index].customAudioUrl,
+        googleDocId: body.googleDocId !== undefined ? body.googleDocId : userList[index].googleDocId,
+        googleDocUrl: body.googleDocUrl !== undefined ? body.googleDocUrl : userList[index].googleDocUrl
       };
       fileData[userId] = userList;
       saveFileAppointments(fileData);

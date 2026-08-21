@@ -15,6 +15,8 @@ interface Appointment {
   reminders?: string[];
   color?: string;
   itemType?: 'compromisso' | 'conta';
+  alarmType?: 'text' | 'sound';
+  customAudioUrl?: string;
 }
 
 interface AccountsManagementViewProps {

@@ -77,6 +77,8 @@ interface Appointment {
   googleDocUrl?: string;
   color?: string;
   itemType?: 'compromisso' | 'conta';
+  alarmType?: 'text' | 'sound';
+  customAudioUrl?: string;
 }
 
 const shareAppointment = (app: Appointment) => {
@@ -3725,28 +3727,40 @@ export default function AgendaApp() {
             const appsRes = await fetch(`/api/appointments?userId=${firebaseUser.uid}`);
             if (appsRes.ok) {
                const appsData = await appsRes.json();
+               const localSaved = typeof window !== 'undefined' ? localStorage.getItem('agenda_appointments') : null;
+               let localParsed: Appointment[] = [];
+               if (localSaved) {
+                 try {
+                   const parsed = JSON.parse(localSaved);
+                   if (Array.isArray(parsed)) localParsed = parsed;
+                 } catch(e) {}
+               }
+
                if (Array.isArray(appsData) && appsData.length > 0) {
                  const formatted = appsData.map((a: any) => ({ ...a, id: (a?.id ?? a?._id ?? Math.random()).toString() }));
-                 setAppointments(formatted);
-                 localStorage.setItem('agenda_appointments', JSON.stringify(formatted));
-               } else {
-                 const localSaved = localStorage.getItem('agenda_appointments');
-                 if (localSaved) {
-                   try {
-                     const parsedSaved = JSON.parse(localSaved);
-                     if (Array.isArray(parsedSaved) && parsedSaved.length > 0) {
-                       fetch('/api/appointments', {
-                         method: 'POST',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({ userId: firebaseUser.uid, appointments: parsedSaved })
-                       }).catch(() => {});
-                     }
-                   } catch(e) {}
+                 const map = new Map<string, Appointment>();
+                 // Add server items first
+                 formatted.forEach((item: Appointment) => { if (item.id) map.set(String(item.id), item); });
+                 // Local items take precedence or add non-synced items
+                 localParsed.forEach((item: Appointment) => {
+                   if (item.id) map.set(String(item.id), item);
+                 });
+                 const merged = Array.from(map.values());
+                 setAppointments(merged);
+                 if (typeof window !== 'undefined') {
+                   localStorage.setItem('agenda_appointments', JSON.stringify(merged));
                  }
+               } else if (localParsed.length > 0) {
+                 setAppointments(localParsed);
+                 fetch('/api/appointments', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ userId: firebaseUser.uid, appointments: localParsed })
+                 }).catch(() => {});
                }
             }
             
-            if (view === 'landing') setView('main_menu');
+            setView((prev: any) => prev === 'landing' ? 'main_menu' : prev);
           }
         } catch(e) {
           console.error("Error restoring session", e);
@@ -3754,7 +3768,7 @@ export default function AgendaApp() {
       }
     });
     return () => unsubscribe();
-  }, [view]); // Add view dependency to re-eval if needed
+  }, []); // Run once on mount
 
   const isUserAdmin = (currentUser && (
     currentUser.name?.toUpperCase().includes('DALÉCIO') || 
@@ -4576,12 +4590,15 @@ export default function AgendaApp() {
               if (sa.id) combinedMap.set(String(sa.id), sa);
             });
             prev.forEach(pa => {
-              if (pa.id && !combinedMap.has(String(pa.id))) {
-                combinedMap.set(String(pa.id), pa);
+              if (pa.id) {
+                const existing = combinedMap.get(String(pa.id));
+                combinedMap.set(String(pa.id), { ...(existing || {}), ...pa });
               }
             });
             const merged = Array.from(combinedMap.values());
-            localStorage.setItem('agenda_appointments', JSON.stringify(merged));
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('agenda_appointments', JSON.stringify(merged));
+            }
             return merged;
           });
         } else if (appointments.length > 0) {
@@ -4869,6 +4886,139 @@ ${whatsAppMsg}`);
     };
   };
 
+  // Modal Audio & Alarm State
+  const [modalIsRecording, setModalIsRecording] = useState(false);
+  const [modalIsAudioPlaying, setModalIsAudioPlaying] = useState(false);
+  const modalMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const modalAudioChunksRef = useRef<Blob[]>([]);
+  const modalActiveAudioRef = useRef<HTMLAudioElement | null>(null);
+  const modalSynthTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const modalStopActiveAudio = () => {
+    if (modalActiveAudioRef.current) {
+      modalActiveAudioRef.current.pause();
+      modalActiveAudioRef.current.currentTime = 0;
+      modalActiveAudioRef.current = null;
+    }
+    if (modalSynthTimerRef.current) {
+      clearInterval(modalSynthTimerRef.current);
+      modalSynthTimerRef.current = null;
+    }
+    setModalIsAudioPlaying(false);
+  };
+
+  const modalPlayAlarmSound = (audioUrl?: string | null) => {
+    modalStopActiveAudio();
+    if (audioUrl) {
+      try {
+        const audio = new Audio(audioUrl);
+        audio.loop = true;
+        audio.play().then(() => {
+          modalActiveAudioRef.current = audio;
+          setModalIsAudioPlaying(true);
+        }).catch(err => {
+          console.error("Erro ao tocar áudio no modal:", err);
+          setModalIsAudioPlaying(false);
+        });
+      } catch (e) {
+        console.error(e);
+        setModalIsAudioPlaying(false);
+      }
+    } else {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const ctx = new AudioContextClass();
+          const playBeep = () => {
+            if (ctx.state === 'suspended') {
+              ctx.resume();
+            }
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+          };
+          playBeep();
+          modalSynthTimerRef.current = setInterval(playBeep, 1200);
+          setModalIsAudioPlaying(true);
+        }
+      } catch (e) {
+        console.error("Erro Web Audio API no modal:", e);
+      }
+    }
+  };
+
+  const modalStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      modalMediaRecorderRef.current = mediaRecorder;
+      modalAudioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          modalAudioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(modalAudioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, customAudioUrl: reader.result as string }));
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setModalIsRecording(true);
+    } catch (err) {
+      console.error("Erro ao acessar microfone:", err);
+      alert("Não foi possível acessar o microfone para gravação.");
+    }
+  };
+
+  const modalStopRecording = () => {
+    if (modalMediaRecorderRef.current && modalIsRecording) {
+      modalMediaRecorderRef.current.stop();
+      setModalIsRecording(false);
+    }
+  };
+
+  const modalHandleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, customAudioUrl: reader.result as string }));
+      };
+    }
+  };
+
+  const modalTestAlarm = () => {
+    if (modalIsAudioPlaying) {
+      modalStopActiveAudio();
+    } else if (formData.alarmType === 'sound') {
+      modalPlayAlarmSound(formData.customAudioUrl);
+    } else {
+      modalStopActiveAudio();
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('Ágio Agenda - Teste', { body: 'Este é um teste de notificação do sistema.' });
+      } else {
+        alert("Ative as notificações do navegador para testar o alerta de texto.");
+      }
+    }
+  };
+
   // Form State
   const [formData, setFormData] = useState({
     title: '',
@@ -4882,20 +5032,59 @@ ${whatsAppMsg}`);
     valueStatus: 'a_receber' as 'a_receber' | 'recebido' | 'a_pagar' | 'pago',
     color: '#10b981',
     itemType: 'compromisso' as 'compromisso' | 'conta',
+    alarmType: 'text' as 'text' | 'sound',
+    customAudioUrl: '' as string,
   });
 
   const handleOpenCreateModal = (forcedType?: 'compromisso' | 'conta') => {
     const typeToSet = forcedType || (view === 'accounts' ? 'conta' : 'compromisso');
-    setFormData(prev => ({ ...prev, reminders: defaultReminders, color: prev.color || '#10b981', itemType: typeToSet }));
+    let defaultAlarmType: 'text' | 'sound' = 'text';
+    let defaultAudio = '';
+    if (typeof window !== 'undefined') {
+      const savedAlarm = localStorage.getItem('agenda_alarm_settings');
+      if (savedAlarm) {
+        try {
+          const parsed = JSON.parse(savedAlarm);
+          if (parsed.alarmType) defaultAlarmType = parsed.alarmType;
+          if (parsed.customAudioUrl) defaultAudio = parsed.customAudioUrl;
+        } catch(e) {}
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      title: '',
+      date: selectedDateFilter || new Date().toISOString().split('T')[0],
+      time: '09:00',
+      category: 'Trabalho' as CategoryType,
+      address: '',
+      contact: '',
+      reminders: defaultReminders.length > 0 ? defaultReminders : ['0'],
+      color: prev.color || '#10b981',
+      itemType: typeToSet,
+      value: 0,
+      valueStatus: 'a_receber',
+      alarmType: defaultAlarmType,
+      customAudioUrl: defaultAudio
+    }));
+    modalStopActiveAudio();
     setIsModalOpen(true);
   };
 
   const saveAppointmentDirectly = (dataToSave: any, editId: string | null) => {
+    modalStopActiveAudio();
     setAppointments((prev: Appointment[]) => {
       let updated: Appointment[];
       if (editId) {
         updated = prev.map(app => 
-          app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981', itemType: dataToSave.itemType || 'compromisso' } : app
+          app.id === editId ? { 
+            ...app, 
+            ...dataToSave, 
+            category: dataToSave.category as CategoryType, 
+            color: dataToSave.color || '#10b981', 
+            itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
+            alarmType: dataToSave.alarmType || 'text',
+            customAudioUrl: dataToSave.customAudioUrl || ''
+          } : app
         ).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
       } else {
         const newAppointment: Appointment = {
@@ -4904,6 +5093,8 @@ ${whatsAppMsg}`);
           category: dataToSave.category as CategoryType,
           color: dataToSave.color || '#10b981',
           itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
+          alarmType: dataToSave.alarmType || 'text',
+          customAudioUrl: dataToSave.customAudioUrl || '',
         };
         updated = [...prev, newAppointment].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
       }
@@ -4918,7 +5109,21 @@ ${whatsAppMsg}`);
     setIsModalOpen(false);
     setEditingAppointmentId(null);
     setOptimizationAlert(null);
-    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
+    setFormData({ 
+      title: '', 
+      date: '', 
+      time: '', 
+      category: 'Trabalho' as CategoryType, 
+      address: '', 
+      contact: '', 
+      reminders: [] as string[], 
+      value: 0, 
+      valueStatus: 'a_receber', 
+      color: '#10b981', 
+      itemType: 'compromisso',
+      alarmType: 'text',
+      customAudioUrl: ''
+    });
   };
 
   const handleCreateAppointment = (e: React.FormEvent) => {
@@ -4983,7 +5188,10 @@ ${whatsAppMsg}`);
       valueStatus: app.valueStatus || 'a_receber',
       color: app.color || '#10b981',
       itemType: inferredType,
+      alarmType: app.alarmType || 'text',
+      customAudioUrl: app.customAudioUrl || '',
     });
+    modalStopActiveAudio();
     setEditingAppointmentId(app.id);
     setIsModalOpen(true);
   };
@@ -6044,11 +6252,13 @@ ${notesDraft}`;
           <div className="bg-[#06402B] border border-white/20 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-white/20 bg-surface-container-low">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                 <span className="material-symbols-outlined text-white">{view === 'accounts' ? 'account_balance_wallet' : 'edit_calendar'}</span>
-                 {view === 'accounts'
+                 <span className="material-symbols-outlined text-white">
+                   {formData.itemType === 'conta' ? 'account_balance_wallet' : 'edit_calendar'}
+                 </span>
+                 {formData.itemType === 'conta'
                    ? (editingAppointmentId 
                        ? (isEs ? 'Editar Cuenta' : isEn ? 'Edit Account' : 'Editar Conta') 
-                       : (isEs ? 'Nueva Conta' : isEn ? 'New Account' : 'Nova Conta'))
+                       : (isEs ? 'Nueva Cuenta' : isEn ? 'New Account' : 'Nova Conta'))
                    : (editingAppointmentId 
                        ? (isEs ? 'Editar Cita' : isEn ? 'Edit Appointment' : 'Editar Compromisso') 
                        : (isEs ? 'Nueva Cita' : isEn ? 'New Appointment' : 'Novo Compromisso'))
@@ -6072,7 +6282,7 @@ ${notesDraft}`;
                         });
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso', alarmType: 'text', customAudioUrl: '' });
                       }
                     }}
                     className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors flex items-center justify-center cursor-pointer"
@@ -6088,7 +6298,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso', alarmType: 'text', customAudioUrl: '' });
                   }}
                   className="text-white hover:text-white/70 transition-colors p-1"
                 >
@@ -6375,55 +6585,209 @@ ${notesDraft}`;
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-white uppercase font-bold">{isEs ? 'Configuración de Alerta Inteligente' : isEn ? 'Smart Alert Settings' : 'Configurações de Alerta Inteligente'}</label>
                   <span className="text-xs text-emerald-400 font-semibold">
                     {formData.reminders.length} {isEs ? (formData.reminders.length > 1 ? 'seleccionados' : 'seleccionado') : isEn ? 'selected' : (formData.reminders.length > 1 ? 'selecionados' : 'selecionado')}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  {LEAD_TIME_OPTIONS.map((opt) => {
-                    const isSelected = formData.reminders.includes(opt.value) ||
-                      (opt.value === '15' && formData.reminders.includes('15m')) ||
-                      (opt.value === '30' && formData.reminders.includes('30m')) ||
-                      (opt.value === '60' && formData.reminders.includes('1h')) ||
-                      (opt.value === '1440' && formData.reminders.includes('24h'));
 
-                    const toggleReminder = (val: string) => {
-                      let newReminders: string[];
-                      if (isSelected) {
-                        newReminders = formData.reminders.filter(r =>
-                          r !== val &&
-                          !(val === '15' && r === '15m') &&
-                          !(val === '30' && r === '30m') &&
-                          !(val === '60' && r === '1h') &&
-                          !(val === '1440' && r === '24h')
-                        );
-                      } else {
-                        newReminders = [...formData.reminders, val];
-                      }
-                      setFormData({ ...formData, reminders: newReminders });
-                    };
+                {/* Antecedência do Alarme */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-white/80 font-bold uppercase tracking-wider">{isEs ? 'Anticipación del Aviso' : isEn ? 'Notification Lead Time' : 'Antecedência do Aviso'}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {LEAD_TIME_OPTIONS.map((opt) => {
+                      const isSelected = formData.reminders.includes(opt.value) ||
+                        (opt.value === '15' && formData.reminders.includes('15m')) ||
+                        (opt.value === '30' && formData.reminders.includes('30m')) ||
+                        (opt.value === '60' && formData.reminders.includes('1h')) ||
+                        (opt.value === '1440' && formData.reminders.includes('24h'));
 
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => toggleReminder(opt.value)}
-                        className={`flex-1 min-w-[110px] sm:min-w-[95px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border cursor-pointer ${
-                          isSelected
-                            ? 'bg-emerald-400 text-gray-950 border-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.7)] scale-[1.02] ring-2 ring-emerald-300/50'
-                            : 'bg-[#091e15]/80 border-white/15 text-white/70 hover:bg-white/15 hover:text-white'
-                        }`}
-                      >
-                        <span className={`material-symbols-outlined text-[16px] shrink-0 ${isSelected ? 'text-gray-950 font-bold' : 'text-white/40'}`}>
-                          {isSelected ? 'check_circle' : 'notifications'}
+                      const toggleReminder = (val: string) => {
+                        let newReminders: string[];
+                        if (isSelected) {
+                          newReminders = formData.reminders.filter(r =>
+                            r !== val &&
+                            !(val === '15' && r === '15m') &&
+                            !(val === '30' && r === '30m') &&
+                            !(val === '60' && r === '1h') &&
+                            !(val === '1440' && r === '24h')
+                          );
+                        } else {
+                          newReminders = [...formData.reminders, val];
+                        }
+                        setFormData({ ...formData, reminders: newReminders });
+                      };
+
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => toggleReminder(opt.value)}
+                          className={`flex-1 min-w-[100px] sm:min-w-[90px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-400 text-gray-950 border-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.7)] scale-[1.02] ring-2 ring-emerald-300/50'
+                              : 'bg-[#091e15]/80 border-white/15 text-white/70 hover:bg-white/15 hover:text-white'
+                          }`}
+                        >
+                          <span className={`material-symbols-outlined text-[16px] shrink-0 ${isSelected ? 'text-gray-950 font-bold' : 'text-white/40'}`}>
+                            {isSelected ? 'check_circle' : 'notifications'}
+                          </span>
+                          <span className="whitespace-nowrap">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tipo de Alarme */}
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/15">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/80 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-emerald-400">tune</span>
+                      <span>{isEs ? 'Tipo de Alarma' : isEn ? 'Alarm Type' : 'Tipo de Alarme'}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={modalTestAlarm}
+                      className={`text-xs px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        modalIsAudioPlaying
+                          ? 'bg-amber-500 text-black border-amber-300 animate-pulse'
+                          : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                      }`}
+                      title={isEs ? 'Probar Alarma' : isEn ? 'Test Alarm' : 'Testar Alarme'}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        {modalIsAudioPlaying ? 'stop_circle' : 'volume_up'}
+                      </span>
+                      <span>{modalIsAudioPlaying ? (isEs ? 'Detener' : isEn ? 'Stop' : 'Parar Teste') : (isEs ? 'Probar' : isEn ? 'Test' : 'Testar')}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label 
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                        formData.alarmType === 'text'
+                          ? 'bg-emerald-500/20 border-emerald-400 text-white ring-1 ring-emerald-400'
+                          : 'bg-[#091e15]/60 border-white/15 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="modal_alarm_type"
+                        value="text"
+                        checked={formData.alarmType === 'text'}
+                        onChange={() => {
+                          modalStopActiveAudio();
+                          setFormData({ ...formData, alarmType: 'text' });
+                        }}
+                        className="accent-emerald-400 w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-emerald-300">chat_bubble_outline</span>
+                          {isEs ? 'Solo Texto' : isEn ? 'Text Only' : 'Apenas Texto'}
                         </span>
-                        <span className="whitespace-nowrap">{opt.label}</span>
-                      </button>
-                    );
-                  })}
+                        <span className="text-[10px] text-white/60">{isEs ? 'Aviso en pantalla' : isEn ? 'Screen alert' : 'Aviso em tela'}</span>
+                      </div>
+                    </label>
+
+                    <label 
+                      className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                        formData.alarmType === 'sound'
+                          ? 'bg-emerald-500/20 border-emerald-400 text-white ring-1 ring-emerald-400'
+                          : 'bg-[#091e15]/60 border-white/15 text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="modal_alarm_type"
+                        value="sound"
+                        checked={formData.alarmType === 'sound'}
+                        onChange={() => setFormData({ ...formData, alarmType: 'sound' })}
+                        className="accent-emerald-400 w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-white flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-emerald-300">volume_up</span>
+                          {isEs ? 'Alerta Sonoro' : isEn ? 'Sound Alert' : 'Alerta Sonoro'}
+                        </span>
+                        <span className="text-[10px] text-white/60">{isEs ? 'Tono / Audio grabado' : isEn ? 'Tone / Custom sound' : 'Som / Áudio gravado'}</span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {formData.alarmType === 'sound' && (
+                    <div className="bg-[#091e15] border border-emerald-500/30 p-3 rounded-xl flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">graphic_eq</span>
+                          <span>{isEs ? 'Sonido / Grabación Personalizada' : isEn ? 'Sound / Custom Audio' : 'Mídia do Alarme Sonoro'}</span>
+                        </span>
+                        {formData.customAudioUrl && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                            {isEs ? 'Audio listo' : isEn ? 'Audio set' : 'Áudio ativo'}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* File Upload Button */}
+                        <label className="flex-1 py-2 px-2.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/15 text-white text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors">
+                          <span className="material-symbols-outlined text-[16px] text-emerald-300">upload_file</span>
+                          <span className="truncate">{isEs ? 'Subir Audio' : isEn ? 'Upload Audio' : 'Upload Áudio'}</span>
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={modalHandleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+
+                        {/* Microphone Record Button */}
+                        <button
+                          type="button"
+                          onClick={modalIsRecording ? modalStopRecording : modalStartRecording}
+                          className={`flex-1 py-2 px-2.5 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                            modalIsRecording
+                              ? 'bg-red-500 text-white border-red-400 animate-pulse font-bold'
+                              : 'bg-white/10 hover:bg-white/15 text-white border-white/20'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[16px] text-red-400">
+                            {modalIsRecording ? 'stop' : 'mic'}
+                          </span>
+                          <span className="truncate">
+                            {modalIsRecording 
+                              ? (isEs ? 'Parar' : isEn ? 'Stop' : 'Parar') 
+                              : (isEs ? 'Grabar' : isEn ? 'Record' : 'Gravar Áudio')
+                            }
+                          </span>
+                        </button>
+                      </div>
+
+                      {formData.customAudioUrl && (
+                        <div className="flex items-center justify-between bg-black/30 px-3 py-1.5 rounded-lg border border-white/10">
+                          <span className="text-[11px] text-white/80 truncate max-w-[200px] flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px] text-emerald-400">audiotrack</span>
+                            <span>{isEs ? 'Audio configurado' : isEn ? 'Custom audio saved' : 'Áudio personalizado pronto'}</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              modalStopActiveAudio();
+                              setFormData(prev => ({ ...prev, customAudioUrl: '' }));
+                            }}
+                            className="text-[11px] text-red-400 hover:text-red-300 font-bold cursor-pointer"
+                          >
+                            {isEs ? 'Quitar' : isEn ? 'Remove' : 'Remover'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -6445,7 +6809,7 @@ ${notesDraft}`;
                         });
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
-                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
+                        setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso', alarmType: 'text', customAudioUrl: '' });
                       }
                     }}
                     className="px-3 py-3 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors font-bold flex items-center justify-center gap-1.5 text-sm"
@@ -6460,7 +6824,7 @@ ${notesDraft}`;
                   onClick={() => {
                     setIsModalOpen(false);
                     setEditingAppointmentId(null);
-                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
+                    setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso', alarmType: 'text', customAudioUrl: '' });
                   }}
                   className="flex-1 py-3 rounded-lg border border-white/20 text-white hover:bg-surface-container-high transition-colors font-medium text-sm"
                 >
