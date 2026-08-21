@@ -195,6 +195,10 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
                 <strong>{isEs ? 'Recordatorio Activo en Pantalla:' : isEn ? 'Active Screen Reminder:' : 'Lembrete Ativo na Tela:'}</strong>{' '}
                 {isEs ? 'En la ventana emergente de Recordatorio Activo, puede pausar el sonido o hacer clic en "Enterado (Cerrar Alerta)" para cerrar la notificación.' : isEn ? 'In the Active Reminder popup window, you can pause the alarm sound or click "Acknowledged (Close Alert)" to dismiss the notification.' : 'Na janela popup de Lembrete Ativo, você pode pausar o som do alarme ou clicar em "Ciente (Fechar Alerta)" para encerrar a notificação.'}
               </li>
+              <li>
+                <strong>{isEs ? 'Notificaciones Push Nativas y Segundo Plano:' : isEn ? 'Native Push Notifications & Background:' : 'Notificações Push Nativas e Segundo Plano:'}</strong>{' '}
+                {isEs ? 'El sistema utiliza Web Push y Service Workers para enviar alarmas incluso con la aplicación totalmente cerrada. La tecnología Screen Wake Lock mantiene los procesos y audios listos en segundo plano, permitiendo abrir la cita con 1 toque en la notificación del sistema.' : isEn ? 'The system uses Web Push and Service Workers to trigger alarms even when the app is completely closed. Screen Wake Lock keeps background processes and audio active, allowing 1-tap direct opening to your appointment from native OS notifications.' : 'O sistema utiliza Web Push e Service Workers para disparar alarmes com som e vibração mesmo com o aplicativo ou a aba totalmente fechados. O Screen Wake Lock e o processo de segundo plano mantêm o áudio pronto, permitindo abrir o compromisso com apenas 1 toque na notificação do sistema operacional.'}
+              </li>
             </ul>
           </div>
 

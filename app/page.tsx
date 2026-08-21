@@ -27,6 +27,8 @@ import { AffiliateLeads } from '../components/AffiliateLeads';
 import { CurrencyInput } from '../components/CurrencyInput';
 import AddressLocationPicker from '../components/AddressLocationPicker';
 import { autoCaptureDeviceAndLocation, getDeviceAndMacInfo, captureUserLocation } from '../lib/deviceLocation';
+import { registerPushServiceWorker, testNativePushNotification, syncUpcomingAppointmentsToPushServer } from '../lib/pushNotifications';
+import { requestScreenWakeLock, releaseScreenWakeLock } from '../lib/wakeLock';
 
 const Payment = nextDynamic(
   () => import('@mercadopago/sdk-react').then((mod) => mod.Payment),
@@ -2651,6 +2653,27 @@ function DailyAgendaView({
   const [activeAlerts, setActiveAlerts] = useState<Appointment[]>([]);
   const alertTriggeredRef = useRef<Record<string, boolean>>({});
 
+  const [isTestingPush, setIsTestingPush] = useState(false);
+  const [pushFeedbackMsg, setPushFeedbackMsg] = useState<string | null>(null);
+
+  const handleTestPushNotification = async () => {
+    setIsTestingPush(true);
+    setPushFeedbackMsg(null);
+    try {
+      const res = await testNativePushNotification(currentUser?.whatsapp || currentUser?.id);
+      if (res.success) {
+        setPushFeedbackMsg("✅ Notificação Push disparada! Verifique o painel de notificações do seu sistema.");
+      } else {
+        setPushFeedbackMsg("⚠️ " + (res.error || "Não foi possível disparar o Push. Verifique as permissões de notificação do navegador."));
+      }
+    } catch (err: any) {
+      setPushFeedbackMsg("❌ Erro ao testar Push: " + err.message);
+    } finally {
+      setIsTestingPush(false);
+      setTimeout(() => setPushFeedbackMsg(null), 8000);
+    }
+  };
+
   const activeAudioRef = useRef<HTMLAudioElement | null>(null);
   const synthTimerRef = useRef<any>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
@@ -3088,8 +3111,33 @@ function DailyAgendaView({
                )}
             </div>
             
+            {/* Status de Background e Push Nativo */}
+            <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  Web Push Nativo (Dispara mesmo com app fechado)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">
+                  <span className="material-symbols-outlined text-[14px]">screen_lock_portrait</span>
+                  Screen Wake Lock & Segundo Plano
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">
+                  <span className="material-symbols-outlined text-[14px]">touch_app</span>
+                  1 Toque para Abrir na Hora Exata
+                </span>
+              </div>
+            </div>
+
+            {pushFeedbackMsg && (
+              <div className="mt-2 p-2.5 rounded-lg bg-[#06402B] border border-emerald-400/40 text-xs text-white font-medium flex items-center gap-2 animate-in fade-in">
+                <span className="material-symbols-outlined text-emerald-300 text-[18px]">notifications_active</span>
+                <span>{pushFeedbackMsg}</span>
+              </div>
+            )}
+
             {/* Action Bar / Painel de Pré-escuta */}
-            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
                <div className="flex items-center gap-2 text-xs text-white/60">
                  {isAudioPlaying ? (
                    <span className="flex items-center gap-1.5 text-amber-300 font-bold animate-pulse">
@@ -3103,7 +3151,21 @@ function DailyAgendaView({
                    </span>
                  )}
                </div>
-               <div className="flex items-center gap-2">
+               <div className="flex flex-wrap items-center gap-2">
+                 <button
+                   onClick={handleTestPushNotification}
+                   disabled={isTestingPush}
+                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
+                     isTestingPush
+                       ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500/30 animate-pulse'
+                       : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400/40 shadow-sm'
+                   }`}
+                   title="Disparar Notificação Push Nativa de teste com som e vibração"
+                 >
+                   <span className="material-symbols-outlined text-[18px]">{isTestingPush ? 'sync' : 'notification_important'}</span>
+                   {isTestingPush ? 'Enviando...' : 'Testar Push Nativo (com Som e Vibração)'}
+                 </button>
+
                  {isAudioPlaying && (
                    <button
                      onClick={stopActiveAudio}
@@ -3115,7 +3177,7 @@ function DailyAgendaView({
                  )}
                  <button onClick={testAlarm} className="flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-highest text-white hover:bg-white/20 transition-colors text-sm font-bold border border-white/10 shadow-sm cursor-pointer">
                    <span className="material-symbols-outlined text-[20px]">{isAudioPlaying ? 'stop_circle' : 'play_circle'}</span>
-                   {isAudioPlaying ? 'Parar Teste' : 'Testar Alarme'}
+                   {isAudioPlaying ? 'Parar Teste' : 'Testar Alarme Local'}
                  </button>
                </div>
             </div>
@@ -4650,7 +4712,63 @@ export default function AgendaApp() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+
+    // Register Web Push Service Worker and subscribe
+    registerPushServiceWorker(currentUser?.whatsapp || currentUser?.id).catch(() => {});
+
+    // Request Screen Wake Lock & Background Audio Keep-Alive
+    requestScreenWakeLock().catch(() => {});
   }, []);
+
+  // Listen to Service Worker messages and 1-Tap URL parameter (?open_app_id=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Handle open_app_id in URL params on startup/notification click
+    const urlParams = new URLSearchParams(window.location.search);
+    const openAppId = urlParams.get('open_app_id');
+    if (openAppId && appointments.length > 0) {
+      const found = appointments.find(a => String(a.id) === String(openAppId));
+      if (found) {
+        handleOpenEdit(found);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
+    // Listen to messages from Service Worker
+    if ('serviceWorker' in navigator) {
+      const handleWorkerMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'NAVIGATE_APPOINTMENT') {
+          const targetId = event.data.appointmentId;
+          if (targetId) {
+            setAppointments(currentApps => {
+              const target = currentApps.find(a => String(a.id) === String(targetId));
+              if (target) {
+                handleOpenEdit(target);
+              }
+              return currentApps;
+            });
+          }
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleWorkerMessage);
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleWorkerMessage);
+      };
+    }
+  }, [appointments]);
+
+  // Sync scheduled appointments with the server push alarm queue
+  useEffect(() => {
+    if (appointments && appointments.length > 0) {
+      syncUpcomingAppointmentsToPushServer(
+        appointments,
+        currentUser?.whatsapp || currentUser?.id,
+        { alarmLeadTimes: ['0', '15', '30', '60', '1440'], alarmType: 'sound' }
+      ).catch(() => {});
+    }
+  }, [appointments, currentUser?.id, currentUser?.whatsapp]);
 
   // Server-side synchronization for currentUser appointments and Gestão de Contas data
   const userSyncKey = currentUser?.id || currentUser?.email || currentUser?.whatsapp;
