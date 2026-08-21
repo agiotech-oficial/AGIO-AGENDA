@@ -3718,8 +3718,24 @@ export default function AgendaApp() {
             const appsRes = await fetch(`/api/appointments?userId=${firebaseUser.uid}`);
             if (appsRes.ok) {
                const appsData = await appsRes.json();
-               if (Array.isArray(appsData)) {
-                 setAppointments(appsData.map((a: any) => ({ ...a, id: (a?.id ?? a?._id ?? Math.random()).toString() })));
+               if (Array.isArray(appsData) && appsData.length > 0) {
+                 const formatted = appsData.map((a: any) => ({ ...a, id: (a?.id ?? a?._id ?? Math.random()).toString() }));
+                 setAppointments(formatted);
+                 localStorage.setItem('agenda_appointments', JSON.stringify(formatted));
+               } else {
+                 const localSaved = localStorage.getItem('agenda_appointments');
+                 if (localSaved) {
+                   try {
+                     const parsedSaved = JSON.parse(localSaved);
+                     if (Array.isArray(parsedSaved) && parsedSaved.length > 0) {
+                       fetch('/api/appointments', {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ userId: firebaseUser.uid, appointments: parsedSaved })
+                       }).catch(() => {});
+                     }
+                   } catch(e) {}
+                 }
                }
             }
             
@@ -4661,55 +4677,189 @@ ${whatsAppMsg}`);
 
   const handleExport = () => {
     let backupData: any = {};
+    const allAffiliates = JSON.parse(localStorage.getItem('agenda_affiliate_users') || localStorage.getItem('agenda_users') || '[]');
+    const myAffiliates = allAffiliates.filter((u: any) => u.referredBy === currentUser?.whatsapp || u.indirectReferredBy === currentUser?.whatsapp || u.referredBy === currentUser?.id);
+    
     if (isUserAdmin) {
       backupData = {
         type: "admin_backup",
+        version: "2.0.0",
+        timestamp: new Date().toISOString(),
         appointments: appointments,
-        allUsers: JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]'),
+        allUsers: allAffiliates,
         systemSettings: JSON.parse(localStorage.getItem('agenda_theme_settings') || '{}'),
-        systemFiles: "Acesso total ao sistema, código fonte, html, telas, e pastas do sistema"
+        settings: JSON.parse(localStorage.getItem('agenda_settings') || '{}'),
+        systemFiles: "Acesso total ao sistema, código fonte, html, telas, e pastas do sistema",
+        data: {
+          appointments: appointments,
+          settings: JSON.parse(localStorage.getItem('agenda_settings') || '{}'),
+          users: allAffiliates
+        }
       };
     } else {
-      const allUsers = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
-      const myAffiliates = allUsers.filter((u: any) => u.referredBy === currentUser?.whatsapp || u.indirectReferredBy === currentUser?.whatsapp);
       backupData = {
         type: "user_backup",
+        version: "2.0.0",
+        timestamp: new Date().toISOString(),
         accountConfig: { themeColor: userAppColor, themeBg: userAppBg },
         personalData: currentUser,
         appointments: appointments,
         affiliateNetwork: myAffiliates,
-        subscriptionPlan: currentUser?.plan
+        subscriptionPlan: currentUser?.plan,
+        data: {
+          appointments: appointments,
+          personalData: currentUser
+        }
       };
     }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `backup_agenda_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchorNode.setAttribute("download", `backup_agenda_${currentUser?.name ? currentUser.name.replace(/\s+/g, '_').toLowerCase() : 'dados'}_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     const fileReader = new FileReader();
-    if(e.target.files && e.target.files.length > 0) {
-      fileReader.readAsText(e.target.files[0], "UTF-8");
-      fileReader.onload = event => {
-        try {
-          const content = event.target?.result as string;
-          const parsed = JSON.parse(content);
-          if (Array.isArray(parsed)) {
-            setAppointments(parsed);
-          } else if (parsed && parsed.appointments) {
-            setAppointments(parsed.appointments);
-          }
-          alert("Backup restaurado com sucesso!");
-          
-        } catch (error) {
-          alert("Erro ao ler o arquivo de backup.");
+    fileReader.readAsText(file, "UTF-8");
+    fileReader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        if (!content) {
+          alert("O arquivo selecionado está vazio.");
+          return;
         }
-      };
-    }
+
+        const parsed = JSON.parse(content);
+
+        // 1. Locate appointments from any known backup format
+        let rawAppointments: any[] = [];
+        if (Array.isArray(parsed)) {
+          rawAppointments = parsed;
+        } else if (parsed && Array.isArray(parsed.appointments)) {
+          rawAppointments = parsed.appointments;
+        } else if (parsed && parsed.data && Array.isArray(parsed.data.appointments)) {
+          rawAppointments = parsed.data.appointments;
+        } else if (parsed && Array.isArray(parsed.items)) {
+          rawAppointments = parsed.items;
+        } else if (parsed && Array.isArray(parsed.compromissos)) {
+          rawAppointments = parsed.compromissos;
+        } else if (parsed && Array.isArray(parsed.events)) {
+          rawAppointments = parsed.events;
+        }
+
+        const cleanAppointments: Appointment[] = rawAppointments.map((app: any, index: number) => {
+          let parsedReminders = defaultReminders;
+          if (Array.isArray(app.reminders)) {
+            parsedReminders = app.reminders;
+          } else if (typeof app.reminders === 'string' && app.reminders.trim()) {
+            try {
+              const r = JSON.parse(app.reminders);
+              if (Array.isArray(r)) parsedReminders = r;
+            } catch (e) {
+              parsedReminders = defaultReminders;
+            }
+          }
+
+          const parsedValue = app.value !== undefined && app.value !== null && app.value !== '' ? Number(app.value) : undefined;
+          const isConta = app.itemType === 'conta' || app.valueStatus === 'a_pagar' || app.valueStatus === 'pago';
+
+          return {
+            id: String(app.id || app._id || `imported_${Date.now()}_${index}`),
+            title: String(app.title || 'Compromisso'),
+            date: String(app.date || new Date().toISOString().split('T')[0]),
+            time: String(app.time || '09:00'),
+            category: (app.category as CategoryType) || 'Trabalho',
+            address: app.address || '',
+            contact: app.contact || '',
+            notes: app.notes || '',
+            value: isNaN(parsedValue as number) ? undefined : parsedValue,
+            valueStatus: app.valueStatus || (isConta ? 'a_pagar' : 'a_receber'),
+            color: app.color || '#10b981',
+            itemType: (app.itemType || (isConta ? 'conta' : 'compromisso')) as 'compromisso' | 'conta',
+            reminders: parsedReminders,
+            googleDocId: app.googleDocId,
+            googleDocUrl: app.googleDocUrl
+          };
+        });
+
+        // 2. Persist appointments
+        if (cleanAppointments.length > 0) {
+          // Update state and localStorage
+          setAppointments(cleanAppointments);
+          localStorage.setItem('agenda_appointments', JSON.stringify(cleanAppointments));
+
+          // Immediately sync with server so server doesn't overwrite it on next request
+          const syncKeys = [
+            currentUser?.id,
+            currentUser?.email,
+            currentUser?.whatsapp,
+            userSyncKey
+          ].filter(Boolean);
+
+          const uniqueKeys = Array.from(new Set(syncKeys));
+          uniqueKeys.forEach(k => {
+            fetch('/api/appointments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: k, appointments: cleanAppointments })
+            }).catch(err => console.error("Error saving imported appointments:", err));
+          });
+        }
+
+        // 3. Restore personal / account config if present
+        if (parsed.accountConfig) {
+          if (parsed.accountConfig.themeColor) {
+            setAppColor(parsed.accountConfig.themeColor);
+            localStorage.setItem('agenda_theme_color', parsed.accountConfig.themeColor);
+          }
+          if (parsed.accountConfig.themeBg) {
+            setAppBgImage(parsed.accountConfig.themeBg);
+            localStorage.setItem('agenda_theme_bg', parsed.accountConfig.themeBg);
+          }
+        }
+
+        if (parsed.personalData || parsed.currentUser || parsed.user) {
+          const userObj = parsed.personalData || parsed.currentUser || parsed.user;
+          if (userObj && typeof userObj === 'object') {
+            const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+            const idx = storedUsers.findIndex((u: any) => (userObj.id && u.id === userObj.id) || (userObj.email && u.email === userObj.email) || (userObj.whatsapp && u.whatsapp === userObj.whatsapp));
+            if (idx !== -1) {
+              storedUsers[idx] = { ...storedUsers[idx], ...userObj };
+            } else if (userObj.id || userObj.email || userObj.whatsapp) {
+              storedUsers.push(userObj);
+            }
+            localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
+          }
+        }
+
+        if (parsed.systemSettings || parsed.data?.themeSettings) {
+          localStorage.setItem('agenda_theme_settings', JSON.stringify(parsed.systemSettings || parsed.data.themeSettings));
+        }
+
+        if (parsed.allUsers || parsed.data?.users) {
+          localStorage.setItem('agenda_affiliate_users', JSON.stringify(parsed.allUsers || parsed.data.users));
+        }
+
+        if (parsed.settings || parsed.data?.settings) {
+          localStorage.setItem('agenda_settings', JSON.stringify(parsed.settings || parsed.data.settings));
+        }
+
+        alert(`Backup restaurado com sucesso! ${cleanAppointments.length} compromissos e contas foram carregados e salvos com sucesso.`);
+      } catch (error) {
+        console.error("Erro ao restaurar backup:", error);
+        alert("Erro ao ler o arquivo de backup. Verifique se é um arquivo .json válido.");
+      } finally {
+        if (e.target) {
+          e.target.value = '';
+        }
+      }
+    };
   };
 
   // Form State
@@ -5354,11 +5504,27 @@ ${notesDraft}`;
       const appsRes = await fetch(`/api/appointments?userId=${firebaseUser.uid}`);
       if (appsRes.ok) {
          const appsData = await appsRes.json();
-         if (Array.isArray(appsData)) {
-           setAppointments(appsData.map((a: any) => ({
+         if (Array.isArray(appsData) && appsData.length > 0) {
+           const formatted = appsData.map((a: any) => ({
               ...a,
               id: (a?.id ?? a?._id ?? Math.random()).toString()
-           })));
+           }));
+           setAppointments(formatted);
+           localStorage.setItem('agenda_appointments', JSON.stringify(formatted));
+         } else {
+           const localSaved = localStorage.getItem('agenda_appointments');
+           if (localSaved) {
+             try {
+               const parsedSaved = JSON.parse(localSaved);
+               if (Array.isArray(parsedSaved) && parsedSaved.length > 0) {
+                 fetch('/api/appointments', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ userId: firebaseUser.uid, appointments: parsedSaved })
+                 }).catch(() => {});
+               }
+             } catch(e) {}
+           }
          }
       }
       
