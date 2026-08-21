@@ -37,8 +37,11 @@ export async function requestScreenWakeLock(): Promise<boolean> {
 
       startBackgroundKeepAlive();
       return true;
-    } catch (err) {
-      console.warn('Wake Lock request rejected or failed:', err);
+    } catch (err: any) {
+      // Gracefully handle iframe permission policies or user denial without throwing errors
+      if (err?.name !== 'NotAllowedError') {
+        console.debug('Wake Lock not active:', err?.message || err);
+      }
       startBackgroundKeepAlive();
       return false;
     }
