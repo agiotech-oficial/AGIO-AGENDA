@@ -4,7 +4,8 @@
   "requestFramePermissions": [
     "geolocation",
     "publickey-credentials-create",
-    "publickey-credentials-get"
+    "publickey-credentials-get",
+    "screen-wake-lock"
   ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
