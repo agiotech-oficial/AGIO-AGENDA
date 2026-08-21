@@ -157,7 +157,14 @@ async function ensureUsersTable() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_enabled BOOLEAN DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_pin TEXT`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS visual_edits TEXT`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_affiliate BOOLEAN DEFAULT FALSE`
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_affiliate BOOLEAN DEFAULT FALSE`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS device_id TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_device_ids TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS mac_address TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS latitude TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS longitude TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_address TEXT`
     ];
 
     for (const q of alterQueries) {
@@ -321,6 +328,19 @@ export async function POST(req: NextRequest) {
     if (body.mfaPin !== undefined) dataToSet.mfaPin = body.mfaPin;
     if (body.visualEdits !== undefined) dataToSet.visualEdits = body.visualEdits;
     if (body.isAffiliate !== undefined) dataToSet.isAffiliate = Boolean(body.isAffiliate);
+
+    const clientIp = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0].trim() || req.headers.get("x-real-ip") || null;
+    if (body.deviceId !== undefined && body.deviceId !== null) dataToSet.deviceId = body.deviceId;
+    if (body.allowedDeviceIds !== undefined && body.allowedDeviceIds !== null) {
+      dataToSet.allowedDeviceIds = Array.isArray(body.allowedDeviceIds) ? JSON.stringify(body.allowedDeviceIds) : String(body.allowedDeviceIds);
+    } else if (body.deviceId) {
+      dataToSet.allowedDeviceIds = JSON.stringify([body.deviceId]);
+    }
+    if (body.macAddress !== undefined && body.macAddress !== null) dataToSet.macAddress = body.macAddress;
+    if (body.location !== undefined && body.location !== null) dataToSet.location = body.location;
+    if (body.latitude !== undefined && body.latitude !== null) dataToSet.latitude = String(body.latitude);
+    if (body.longitude !== undefined && body.longitude !== null) dataToSet.longitude = String(body.longitude);
+    if (body.ipAddress || body.ip || clientIp) dataToSet.ipAddress = body.ipAddress || body.ip || clientIp;
 
     const isDalecioAdmin = 
       (userEmail && userEmail.toLowerCase() === 'agiotech.oficial@gmail.com') ||

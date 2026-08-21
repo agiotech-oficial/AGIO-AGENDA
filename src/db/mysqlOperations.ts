@@ -70,14 +70,22 @@ export async function saveMySQLUser(userData: any) {
     const mfaPin = userData.mfaPin || null;
     const visualEdits = userData.visualEdits ? (typeof userData.visualEdits === 'string' ? userData.visualEdits : JSON.stringify(userData.visualEdits)) : null;
     const isAffiliate = userData.isAffiliate !== undefined ? (Boolean(userData.isAffiliate) ? 1 : 0) : null;
+    const deviceId = userData.deviceId || userData.device_id || null;
+    const allowedDeviceIds = userData.allowedDeviceIds ? (Array.isArray(userData.allowedDeviceIds) ? JSON.stringify(userData.allowedDeviceIds) : String(userData.allowedDeviceIds)) : (deviceId ? JSON.stringify([deviceId]) : null);
+    const macAddress = userData.macAddress || userData.mac_address || null;
+    const location = userData.location || null;
+    const latitude = userData.latitude !== undefined && userData.latitude !== null ? String(userData.latitude) : null;
+    const longitude = userData.longitude !== undefined && userData.longitude !== null ? String(userData.longitude) : null;
+    const ipAddress = userData.ipAddress || userData.ip_address || userData.ip || null;
 
     const sql = `
       INSERT INTO users (
         firebase_uid, name, email, photo_url, mfa_enabled, totp_enabled, totp_secret,
         webauthn_enabled, webauthn_credential_id, whatsapp, cpf, city, state, country,
         plan, theme_color, theme_bg, age, gender, profession, pix_key, language,
-        sound_enabled, voice_enabled, mfa_pin, visual_edits, is_affiliate
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sound_enabled, voice_enabled, mfa_pin, visual_edits, is_affiliate,
+        device_id, allowed_device_ids, mac_address, location, latitude, longitude, ip_address
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         name = COALESCE(VALUES(name), name),
         email = COALESCE(VALUES(email), email),
@@ -104,14 +112,22 @@ export async function saveMySQLUser(userData: any) {
         voice_enabled = VALUES(voice_enabled),
         mfa_pin = COALESCE(VALUES(mfa_pin), mfa_pin),
         visual_edits = COALESCE(VALUES(visual_edits), visual_edits),
-        is_affiliate = COALESCE(VALUES(is_affiliate), is_affiliate);
+        is_affiliate = COALESCE(VALUES(is_affiliate), is_affiliate),
+        device_id = COALESCE(VALUES(device_id), device_id),
+        allowed_device_ids = COALESCE(VALUES(allowed_device_ids), allowed_device_ids),
+        mac_address = COALESCE(VALUES(mac_address), mac_address),
+        location = COALESCE(VALUES(location), location),
+        latitude = COALESCE(VALUES(latitude), latitude),
+        longitude = COALESCE(VALUES(longitude), longitude),
+        ip_address = COALESCE(VALUES(ip_address), ip_address);
     `;
 
     await queryMySQL(sql, [
       uid, name, email, photoUrl, mfaEnabled, totpEnabled, totpSecret,
       webAuthnEnabled, webAuthnCredentialId, whatsapp, cpf, city, state, country,
       plan, themeColor, themeBg, age, gender, profession, pixKey, language,
-      soundEnabled, voiceEnabled, mfaPin, visualEdits, isAffiliate
+      soundEnabled, voiceEnabled, mfaPin, visualEdits, isAffiliate,
+      deviceId, allowedDeviceIds, macAddress, location, latitude, longitude, ipAddress
     ]);
     return true;
   } catch (error) {
@@ -247,6 +263,21 @@ function formatMySQLUser(row: any) {
     mfaPin: row.mfa_pin,
     visualEdits: row.visual_edits,
     isAffiliate: Boolean(row.is_affiliate),
+    deviceId: row.device_id,
+    allowedDeviceIds: (() => {
+      if (!row.allowed_device_ids) return row.device_id ? [row.device_id] : [];
+      try {
+        const parsed = JSON.parse(row.allowed_device_ids);
+        return Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch (e) {
+        return [row.allowed_device_ids];
+      }
+    })(),
+    macAddress: row.mac_address,
+    location: row.location,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    ipAddress: row.ip_address,
     createdAt: row.created_at
   };
 }

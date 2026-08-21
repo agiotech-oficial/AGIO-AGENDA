@@ -26,6 +26,7 @@ import nextDynamic from 'next/dynamic';
 import { AffiliateLeads } from '../components/AffiliateLeads';
 import { CurrencyInput } from '../components/CurrencyInput';
 import AddressLocationPicker from '../components/AddressLocationPicker';
+import { autoCaptureDeviceAndLocation, getDeviceAndMacInfo, captureUserLocation } from '../lib/deviceLocation';
 
 const Payment = nextDynamic(
   () => import('@mercadopago/sdk-react').then((mod) => mod.Payment),
@@ -158,6 +159,34 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
   const [country, setCountry] = useState('Brasil');
   const [isAffiliateOptIn, setIsAffiliateOptIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deviceMac, setDeviceMac] = useState<string>('');
+  const [detectedLocStr, setDetectedLocStr] = useState<string>('');
+  const [isDetectingLocation, setIsDetectingLocation] = useState<boolean>(true);
+  const locationCapturedRef = useRef<{ latitude: number | null; longitude: number | null; location: string; ip: string; city: string; state: string; country: string } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const dev = getDeviceAndMacInfo();
+        if (isMounted) setDeviceMac(dev.macAddress);
+
+        const loc = await captureUserLocation();
+        if (isMounted) {
+          locationCapturedRef.current = loc;
+          setDetectedLocStr(loc.location || [loc.city, loc.state, loc.country].filter(Boolean).join(', ') || 'Localização identificada');
+          if (loc.city && !city) setCity(loc.city);
+          if (loc.state && !state) setState(loc.state.toUpperCase());
+          if (loc.country && !country) setCountry(loc.country);
+          setIsDetectingLocation(false);
+        }
+      } catch (e) {
+        if (isMounted) setIsDetectingLocation(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
+
   const [isLandingMobileMenuOpen, setIsLandingMobileMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
@@ -544,16 +573,28 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
     };
   }, [isAnyLandingModalActive]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cpf && !isValidCPF(cpf)) {
       alert('O CPF informado é inválido. Por favor, verifique.');
       return;
     }
     setIsSubmitting(true);
+    
+    let loc = locationCapturedRef.current;
+    if (!loc) {
+      try {
+        loc = await captureUserLocation();
+        locationCapturedRef.current = loc;
+      } catch (err) {}
+    }
+    const finalCity = city || loc?.city || '';
+    const finalState = state || loc?.state || '';
+    const finalCountry = country || loc?.country || 'Brasil';
+
     setTimeout(() => {
-      onLogin(name || 'Visitante', whatsapp, isAffiliateOptIn, email, cpf, city, state, country, password);
-    }, 800);
+      onLogin(name || 'Visitante', whatsapp, isAffiliateOptIn, email, cpf, finalCity, finalState, finalCountry, password);
+    }, 500);
   };
 
   const defaultModules = [
@@ -963,6 +1004,31 @@ function LandingView({ onNavigate, onLogin, onGoogleLogin, systemPrices, systemM
                 </div>
               )}
               
+              {/* Informações Obrigatórias de Segurança: Endereço MAC e Localização */}
+              <div className="bg-black/20 border border-emerald-500/30 rounded-lg p-2.5 mt-2 text-xs flex flex-col gap-1.5 text-white/90">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-semibold text-emerald-300">
+                    <span className="material-symbols-outlined text-[16px] text-emerald-400">devices</span>
+                    <span>Dispositivo (Endereço MAC):</span>
+                  </div>
+                  <code className="font-mono text-emerald-200 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/20 text-[11px]">
+                    {deviceMac || 'Capturando...'}
+                  </code>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-white/80">
+                    <span className="material-symbols-outlined text-[16px] text-emerald-400">location_on</span>
+                    <span>Localização de Cadastro:</span>
+                  </div>
+                  <span className="text-white/90 truncate max-w-[170px] text-right font-medium">
+                    {isDetectingLocation ? 'Localizando...' : (detectedLocStr || 'Brasil')}
+                  </span>
+                </div>
+                <p className="text-[10px] text-white/60 leading-tight border-t border-white/10 pt-1">
+                  ✓ Captura automática e proteção vinculada ao aparelho ativa.
+                </p>
+              </div>
+
               <button 
                 className="w-full bg-primary text-on-primary-fixed py-4 px-6 rounded-xl font-title-md text-title-md flex justify-center items-center gap-2 hover:bg-white hover:text-surface-container active:scale-[0.98] transition-all mt-4 shadow-lg disabled:opacity-70 disabled:cursor-not-allowed" 
                 type="submit"
@@ -3402,6 +3468,11 @@ interface AffiliateUser {
   path: string;
   deviceId: string;
   allowedDeviceIds?: string[];
+  macAddress?: string;
+  location?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  ipAddress?: string;
   maxDevices?: number;
   createdAt: string;
   plan: 'free' | 'premium';
@@ -5586,6 +5657,23 @@ ${notesDraft}`;
         return;
       }
 
+      // Automatically capture Device MAC Address and Location
+      const devInfo = getDeviceAndMacInfo();
+      let userLocInfo: any = null;
+      try {
+        userLocInfo = await captureUserLocation();
+      } catch (locErr) {
+        console.warn("Location capture fallback:", locErr);
+      }
+
+      const resolvedCity = city || userLocInfo?.city || '';
+      const resolvedState = state || userLocInfo?.state || '';
+      const resolvedCountry = country || userLocInfo?.country || 'Brasil';
+      const resolvedLocation = userLocInfo?.location || [resolvedCity, resolvedState, resolvedCountry].filter(Boolean).join(', ') || '';
+      const resolvedLat = userLocInfo?.latitude !== null && userLocInfo?.latitude !== undefined ? String(userLocInfo.latitude) : undefined;
+      const resolvedLng = userLocInfo?.longitude !== null && userLocInfo?.longitude !== undefined ? String(userLocInfo.longitude) : undefined;
+      const resolvedIp = userLocInfo?.ip || undefined;
+
       // Sync with our PostgreSQL DB safely
       let dbUser: any = null;
       try {
@@ -5598,9 +5686,16 @@ ${notesDraft}`;
             email: email || firebaseUser.email || undefined,
             whatsapp,
             cpf,
-            city,
-            state,
-            country
+            city: resolvedCity,
+            state: resolvedState,
+            country: resolvedCountry,
+            deviceId: devInfo.deviceId,
+            allowedDeviceIds: devInfo.allowedDeviceIds,
+            macAddress: devInfo.macAddress,
+            location: resolvedLocation,
+            latitude: resolvedLat,
+            longitude: resolvedLng,
+            ipAddress: resolvedIp
           })
         });
         
@@ -5630,9 +5725,16 @@ ${notesDraft}`;
           email: resolvedEmail,
           whatsapp: whatsapp || existingLocal?.whatsapp || '',
           cpf: cpf || existingLocal?.cpf || '',
-          city: city || existingLocal?.city || '',
-          state: state || existingLocal?.state || '',
-          country: country || existingLocal?.country || '',
+          city: resolvedCity || existingLocal?.city || '',
+          state: resolvedState || existingLocal?.state || '',
+          country: resolvedCountry || existingLocal?.country || '',
+          deviceId: devInfo.deviceId,
+          allowedDeviceIds: devInfo.allowedDeviceIds,
+          macAddress: devInfo.macAddress,
+          location: resolvedLocation,
+          latitude: resolvedLat,
+          longitude: resolvedLng,
+          ipAddress: resolvedIp,
           plan: existingLocal?.plan || 'free',
           createdAt: existingLocal?.createdAt || new Date().toISOString(),
           mfaEnabled: existingLocal?.mfaEnabled || false,
@@ -5730,9 +5832,16 @@ ${notesDraft}`;
           whatsapp: dbUser?.whatsapp || "",
           email: dbUser?.email || firebaseUser?.email || (isDalecioAdmin ? "agiotech.oficial@gmail.com" : ""),
           cpf: dbUser?.cpf || (isDalecioAdmin ? "10896050726" : ""),
-          city: dbUser?.city || "",
-          state: dbUser?.state || "",
-          country: dbUser?.country || "",
+          city: dbUser?.city || resolvedCity || "",
+          state: dbUser?.state || resolvedState || "",
+          country: dbUser?.country || resolvedCountry || "",
+          deviceId: dbUser?.deviceId || devInfo.deviceId,
+          allowedDeviceIds: dbUser?.allowedDeviceIds || devInfo.allowedDeviceIds,
+          macAddress: dbUser?.macAddress || devInfo.macAddress,
+          location: dbUser?.location || resolvedLocation,
+          latitude: dbUser?.latitude || resolvedLat,
+          longitude: dbUser?.longitude || resolvedLng,
+          ipAddress: dbUser?.ipAddress || resolvedIp,
           plan: dbUser?.plan || (isDalecioAdmin ? "premium" : "free"),
           createdAt: dbUser?.createdAt || new Date().toISOString(),
           firebaseUid: firebaseUser.uid,
@@ -5766,6 +5875,19 @@ ${notesDraft}`;
             return false;
           })()
        };
+
+       if (typeof window !== 'undefined') {
+         try {
+           const stored = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+           const idx = stored.findIndex((u: any) => u.id === affiliateUser.id || (affiliateUser.email && u.email === affiliateUser.email));
+           if (idx >= 0) {
+             stored[idx] = { ...stored[idx], ...affiliateUser };
+           } else {
+             stored.push(affiliateUser);
+           }
+           localStorage.setItem('agenda_users', JSON.stringify(stored));
+         } catch (e) {}
+       }
        
        setCurrentUser(affiliateUser as any);
        setUserName(affiliateUser.name);
@@ -5873,7 +5995,9 @@ ${notesDraft}`;
     const { name, whatsapp, isAffiliateOptIn, email, cpf, city, state, country, userFound } = pendingLoginUser;
 
     let storedUsers: AffiliateUser[] = JSON.parse(localStorage.getItem('agenda_users') || '[]');
-    let deviceId = localStorage.getItem('device_id') || '';
+    const devInfo = getDeviceAndMacInfo();
+    let deviceId = devInfo.deviceId;
+    let macAddress = devInfo.macAddress;
 
     let user: AffiliateUser | null | undefined = null;
     if (userFound) {
@@ -5923,6 +6047,7 @@ ${notesDraft}`;
         path: parentPath,
         deviceId: deviceId, // Atrelando ao Device ID local
         allowedDeviceIds: [deviceId],
+        macAddress: macAddress,
         maxDevices: 1,
         createdAt: new Date().toISOString(),
         plan: 'free',
@@ -5960,6 +6085,10 @@ ${notesDraft}`;
       if (country && user.country !== country) { user.country = country; isUpdated = true; }
       if (!user.deviceId) {
          user.deviceId = deviceId;
+         isUpdated = true;
+      }
+      if (!user.macAddress) {
+         user.macAddress = macAddress;
          isUpdated = true;
       }
       if (!user.allowedDeviceIds) {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getDeviceAndMacInfo } from '../lib/deviceLocation';
 
 export function useAccessTracker(currentUser: any) {
   const trackedRef = useRef(false);
@@ -44,11 +45,12 @@ export function useAccessTracker(currentUser: any) {
               age: currentUser.age,
               gender: currentUser.gender,
               profession: currentUser.profession,
-              deviceId: currentUser.deviceId,
+              deviceId: currentUser.deviceId || getDeviceAndMacInfo().deviceId,
+              macAddress: currentUser.macAddress || getDeviceAndMacInfo().macAddress,
            };
         } else {
-           const deviceId = localStorage.getItem('agenda_device_id') || 'unknown';
-           demographicData = { deviceId };
+           const devInfo = getDeviceAndMacInfo();
+           demographicData = { deviceId: devInfo.deviceId, macAddress: devInfo.macAddress };
         }
 
         const newLog = {

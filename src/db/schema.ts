@@ -16,6 +16,13 @@ export const users = pgTable("users", {
   city: text("city"),
   state: text("state"),
   country: text("country"),
+  deviceId: text("device_id"),
+  allowedDeviceIds: text("allowed_device_ids"),
+  macAddress: text("mac_address"),
+  location: text("location"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  ipAddress: text("ip_address"),
   plan: text("plan").default("free"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   

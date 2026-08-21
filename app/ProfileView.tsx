@@ -17,6 +17,11 @@ interface AffiliateUser {
   path: string;
   deviceId: string;
   allowedDeviceIds?: string[];
+  macAddress?: string;
+  location?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  ipAddress?: string;
   maxDevices?: number;
   createdAt: string;
   plan: 'free' | 'premium';
@@ -408,6 +413,28 @@ export function ProfileView({
                     ATIVAR
                   </button>
                 )}
+              </div>
+
+              {/* Dispositivo e Localização Vinculados */}
+              <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
+                <span className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-emerald-400 text-lg">devices</span>
+                  Identificação do Dispositivo & Localização
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-black/20 p-3 rounded-lg border border-white/10">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-white/60">Endereço MAC:</span>
+                    <code className="font-mono text-emerald-300 font-semibold bg-emerald-950/60 px-2 py-1 rounded border border-emerald-500/20">
+                      {currentUser?.macAddress || 'Não registrado'}
+                    </code>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-white/60">Localização Registrada:</span>
+                    <span className="text-white font-medium bg-white/5 px-2 py-1 rounded border border-white/10 truncate">
+                      {currentUser?.location || [currentUser?.city, currentUser?.state, currentUser?.country].filter(Boolean).join(', ') || 'Brasil'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Login Automático */}

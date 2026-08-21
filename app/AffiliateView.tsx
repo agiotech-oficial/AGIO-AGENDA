@@ -19,6 +19,11 @@ interface AffiliateUser {
   path: string;
   deviceId: string;
   allowedDeviceIds?: string[];
+  macAddress?: string;
+  location?: string;
+  latitude?: string | number;
+  longitude?: string | number;
+  ipAddress?: string;
   maxDevices?: number;
   createdAt: string;
   plan: 'free' | 'premium';
