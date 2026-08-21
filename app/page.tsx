@@ -2452,7 +2452,7 @@ function DailyAgendaView({
   selectedDate: string;
   userName: string;
   appointments: Appointment[];
-  setAppointments: (apps: Appointment[]) => void;
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
   onNavigate: (view: 'landing' | 'main_menu' | 'calendar' | 'dashboard' | 'daily_agenda' | 'admin' | 'instructions' | 'modules' | 'accounts') => void;
   onOpenModal: () => void;
   onOpenProfile: () => void;
@@ -2550,13 +2550,20 @@ function DailyAgendaView({
       reminders: defaultReminders
     };
 
-    setAppointments([...appointments, newApp]);
+    setAppointments((prev: Appointment[]) => {
+      const updated = [...prev, newApp].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
     setRowDrafts(prev => {
       const next = { ...prev };
       delete next[index];
       return next;
     });
-  }, [rowDrafts, selectedDate, defaultReminders, appointments, setAppointments]);
+  }, [rowDrafts, selectedDate, defaultReminders, setAppointments]);
 
   const dateObj = new Date(selectedDate || new Date().toISOString().split('T')[0]);
   const displayDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
@@ -4884,20 +4891,29 @@ ${whatsAppMsg}`);
   };
 
   const saveAppointmentDirectly = (dataToSave: any, editId: string | null) => {
-    if (editId) {
-      setAppointments(appointments.map(app => 
-        app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981', itemType: dataToSave.itemType || 'compromisso' } : app
-      ).sort((a, b) => a.date.localeCompare(b.date)));
-    } else {
-      const newAppointment: Appointment = {
-        id: Math.random().toString(36).substr(2, 9),
-        ...dataToSave,
-        category: dataToSave.category as CategoryType,
-        color: dataToSave.color || '#10b981',
-        itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
-      };
-      setAppointments([...appointments, newAppointment].sort((a, b) => a.date.localeCompare(b.date)));
-    }
+    setAppointments((prev: Appointment[]) => {
+      let updated: Appointment[];
+      if (editId) {
+        updated = prev.map(app => 
+          app.id === editId ? { ...app, ...dataToSave, category: dataToSave.category as CategoryType, color: dataToSave.color || '#10b981', itemType: dataToSave.itemType || 'compromisso' } : app
+        ).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+      } else {
+        const newAppointment: Appointment = {
+          id: Math.random().toString(36).substr(2, 9),
+          ...dataToSave,
+          category: dataToSave.category as CategoryType,
+          color: dataToSave.color || '#10b981',
+          itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
+        };
+        updated = [...prev, newAppointment].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+      }
+
+      return updated;
+    });
     
     setIsModalOpen(false);
     setEditingAppointmentId(null);
@@ -4974,7 +4990,13 @@ ${whatsAppMsg}`);
 
   const handleDeleteAppointment = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este compromisso?')) {
-      setAppointments(appointments.filter(app => app.id !== id));
+      setAppointments((prev: Appointment[]) => {
+        const updated = prev.filter(app => app.id !== id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+        }
+        return updated;
+      });
     }
   };
 
@@ -6026,7 +6048,7 @@ ${notesDraft}`;
                  {view === 'accounts'
                    ? (editingAppointmentId 
                        ? (isEs ? 'Editar Cuenta' : isEn ? 'Edit Account' : 'Editar Conta') 
-                       : (isEs ? 'Nueva Cuenta' : isEn ? 'New Account' : 'Nova Conta'))
+                       : (isEs ? 'Nueva Conta' : isEn ? 'New Account' : 'Nova Conta'))
                    : (editingAppointmentId 
                        ? (isEs ? 'Editar Cita' : isEn ? 'Edit Appointment' : 'Editar Compromisso') 
                        : (isEs ? 'Nueva Cita' : isEn ? 'New Appointment' : 'Novo Compromisso'))
@@ -6038,10 +6060,16 @@ ${notesDraft}`;
                     type="button"
                     onClick={() => {
                       const confirmText = view === 'accounts'
-                        ? (isEs ? '¿Está seguro de que desea eliminar esta cuenta?' : isEn ? 'Are you sure you want to delete this account?' : 'Tem certeza que deseja excluir esta conta?')
-                        : (isEs ? '¿Está seguro de que desea eliminar esta cita?' : isEn ? 'Are you sure you want to delete this appointment?' : 'Tem certeza que deseja excluir este compromisso?');
+                        ? (isEs ? '¿Está seguro de que deseja eliminar esta conta?' : isEn ? 'Are you sure you want to delete this account?' : 'Tem certeza que deseja excluir esta conta?')
+                        : (isEs ? '¿Está seguro de que deseja eliminar esta cita?' : isEn ? 'Are you sure you want to delete this appointment?' : 'Tem certeza que deseja excluir este compromisso?');
                       if (confirm(confirmText)) {
-                        setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
+                        setAppointments((prev: Appointment[]) => {
+                          const updated = prev.filter(app => app.id !== editingAppointmentId);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+                          }
+                          return updated;
+                        });
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
                         setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
@@ -6408,7 +6436,13 @@ ${notesDraft}`;
                         ? (isEs ? '¿Está seguro de que desea eliminar esta cuenta?' : isEn ? 'Are you sure you want to delete this account?' : 'Tem certeza que deseja excluir esta conta?')
                         : (isEs ? '¿Está seguro de que desea eliminar esta cita?' : isEn ? 'Are you sure you want to delete this appointment?' : 'Tem certeza que deseja excluir este compromisso?');
                       if (confirm(confirmText)) {
-                        setAppointments(appointments.filter(app => app.id !== editingAppointmentId));
+                        setAppointments((prev: Appointment[]) => {
+                          const updated = prev.filter(app => app.id !== editingAppointmentId);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+                          }
+                          return updated;
+                        });
                         setIsModalOpen(false);
                         setEditingAppointmentId(null);
                         setFormData({ title: '', date: '', time: '', category: 'Trabalho' as CategoryType, address: '', contact: '', reminders: [] as string[], value: 0, valueStatus: 'a_receber', color: '#10b981', itemType: 'compromisso' });
