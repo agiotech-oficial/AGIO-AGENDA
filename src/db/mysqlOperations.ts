@@ -69,14 +69,15 @@ export async function saveMySQLUser(userData: any) {
     const voiceEnabled = Boolean(userData.voiceEnabled);
     const mfaPin = userData.mfaPin || null;
     const visualEdits = userData.visualEdits ? (typeof userData.visualEdits === 'string' ? userData.visualEdits : JSON.stringify(userData.visualEdits)) : null;
+    const isAffiliate = userData.isAffiliate !== undefined ? (Boolean(userData.isAffiliate) ? 1 : 0) : null;
 
     const sql = `
       INSERT INTO users (
         firebase_uid, name, email, photo_url, mfa_enabled, totp_enabled, totp_secret,
         webauthn_enabled, webauthn_credential_id, whatsapp, cpf, city, state, country,
         plan, theme_color, theme_bg, age, gender, profession, pix_key, language,
-        sound_enabled, voice_enabled, mfa_pin, visual_edits
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sound_enabled, voice_enabled, mfa_pin, visual_edits, is_affiliate
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         name = COALESCE(VALUES(name), name),
         email = COALESCE(VALUES(email), email),
@@ -102,14 +103,15 @@ export async function saveMySQLUser(userData: any) {
         sound_enabled = VALUES(sound_enabled),
         voice_enabled = VALUES(voice_enabled),
         mfa_pin = COALESCE(VALUES(mfa_pin), mfa_pin),
-        visual_edits = COALESCE(VALUES(visual_edits), visual_edits);
+        visual_edits = COALESCE(VALUES(visual_edits), visual_edits),
+        is_affiliate = COALESCE(VALUES(is_affiliate), is_affiliate);
     `;
 
     await queryMySQL(sql, [
       uid, name, email, photoUrl, mfaEnabled, totpEnabled, totpSecret,
       webAuthnEnabled, webAuthnCredentialId, whatsapp, cpf, city, state, country,
       plan, themeColor, themeBg, age, gender, profession, pixKey, language,
-      soundEnabled, voiceEnabled, mfaPin, visualEdits
+      soundEnabled, voiceEnabled, mfaPin, visualEdits, isAffiliate
     ]);
     return true;
   } catch (error) {
@@ -141,25 +143,61 @@ export async function saveMySQLAppointments(userId: string, appsList: any[]) {
     // Insert new
     for (const app of appsList) {
       const remindersStr = Array.isArray(app.reminders) ? JSON.stringify(app.reminders) : (typeof app.reminders === 'string' ? app.reminders : '[]');
-      const valStr = app.value !== undefined && app.value !== null ? String(app.value) : null;
-      
-      await queryMySQL(`
-        INSERT INTO appointments (
-          user_id, title, date, time, category, address, contact, notes, value, value_status, reminders
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        userId,
-        app.title || 'Sem título',
-        app.date || '',
-        app.time || '00:00',
-        app.category || 'Geral',
-        app.address || null,
-        app.contact || null,
-        app.notes || null,
-        valStr,
-        app.valueStatus || null,
-        remindersStr
-      ]);
+      const valStr = app.value !== undefined && app.value !== null && app.value !== '' ? String(app.value) : null;
+      const cId = String(app.id || app.clientId || app._id || '');
+      const itemTypeStr = app.itemType || ((app.value !== undefined && app.value !== null && Number(app.value) > 0) || app.valueStatus ? 'conta' : 'compromisso');
+      const colorStr = app.color || '#10b981';
+      const alarmTypeStr = app.alarmType || 'text';
+      const customAudioUrlStr = app.customAudioUrl || null;
+      const googleDocIdStr = app.googleDocId || null;
+      const googleDocUrlStr = app.googleDocUrl || null;
+
+      try {
+        await queryMySQL(`
+          INSERT INTO appointments (
+            client_id, user_id, title, date, time, category, address, contact, notes, value, value_status, reminders,
+            item_type, color, alarm_type, custom_audio_url, google_doc_id, google_doc_url
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          cId,
+          userId,
+          app.title || 'Sem título',
+          app.date || '',
+          app.time || '00:00',
+          app.category || 'Trabalho',
+          app.address || null,
+          app.contact || null,
+          app.notes || null,
+          valStr,
+          app.valueStatus || null,
+          remindersStr,
+          itemTypeStr,
+          colorStr,
+          alarmTypeStr,
+          customAudioUrlStr,
+          googleDocIdStr,
+          googleDocUrlStr
+        ]);
+      } catch (insertErr) {
+        // Fallback in case columns were not migrated
+        await queryMySQL(`
+          INSERT INTO appointments (
+            user_id, title, date, time, category, address, contact, notes, value, value_status, reminders
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          userId,
+          app.title || 'Sem título',
+          app.date || '',
+          app.time || '00:00',
+          app.category || 'Trabalho',
+          app.address || null,
+          app.contact || null,
+          app.notes || null,
+          valStr,
+          app.valueStatus || null,
+          remindersStr
+        ]);
+      }
     }
     return true;
   } catch (error) {
@@ -171,7 +209,7 @@ export async function saveMySQLAppointments(userId: string, appsList: any[]) {
 export async function deleteMySQLAppointment(userId: string, appointmentId: string) {
   if (!isMySQLConfigured() || !userId || !appointmentId) return false;
   try {
-    await queryMySQL('DELETE FROM appointments WHERE user_id = ? AND id = ?', [userId, appointmentId]);
+    await queryMySQL('DELETE FROM appointments WHERE user_id = ? AND (id = ? OR client_id = ?)', [userId, appointmentId, appointmentId]);
     return true;
   } catch (error) {
     console.warn('[MySQL] Error deleting appointment:', error);
@@ -208,6 +246,7 @@ function formatMySQLUser(row: any) {
     voiceEnabled: Boolean(row.voice_enabled),
     mfaPin: row.mfa_pin,
     visualEdits: row.visual_edits,
+    isAffiliate: Boolean(row.is_affiliate),
     createdAt: row.created_at
   };
 }
@@ -220,19 +259,30 @@ function formatMySQLAppointment(row: any) {
     reminders = [];
   }
 
+  const finalId = String(row.client_id || row.id);
+  const parsedValue = row.value !== undefined && row.value !== null && row.value !== '' ? Number(row.value) : undefined;
+  const isConta = row.item_type === 'conta' || ((parsedValue !== undefined && parsedValue > 0) || Boolean(row.value_status));
+
   return {
-    id: String(row.id),
+    id: finalId,
+    clientId: finalId,
     userId: row.user_id,
-    title: row.title,
-    date: row.date,
-    time: row.time,
-    category: row.category,
-    address: row.address,
-    contact: row.contact,
-    notes: row.notes,
-    value: row.value !== undefined && row.value !== null && row.value !== '' ? Number(row.value) : undefined,
-    valueStatus: row.value_status,
+    title: row.title || 'Sem título',
+    date: row.date || '',
+    time: row.time || '00:00',
+    category: row.category || 'Trabalho',
+    address: row.address || undefined,
+    contact: row.contact || undefined,
+    notes: row.notes || undefined,
+    value: parsedValue,
+    valueStatus: row.value_status || (isConta ? 'a_receber' : undefined),
     reminders,
+    itemType: (row.item_type || (isConta ? 'conta' : 'compromisso')) as 'compromisso' | 'conta',
+    color: row.color || '#10b981',
+    alarmType: (row.alarm_type || 'text') as 'text' | 'sound',
+    customAudioUrl: row.custom_audio_url || undefined,
+    googleDocId: row.google_doc_id || undefined,
+    googleDocUrl: row.google_doc_url || undefined,
     createdAt: row.created_at
   };
 }

@@ -15,6 +15,7 @@ async function ensureAppointmentsTable() {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS appointments (
         id SERIAL PRIMARY KEY,
+        client_id TEXT,
         user_id TEXT NOT NULL,
         title TEXT NOT NULL,
         date TEXT NOT NULL,
@@ -26,9 +27,25 @@ async function ensureAppointmentsTable() {
         value TEXT,
         value_status TEXT,
         reminders TEXT,
+        item_type TEXT,
+        color TEXT,
+        alarm_type TEXT,
+        custom_audio_url TEXT,
+        google_doc_id TEXT,
+        google_doc_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `);
+
+    // Run safe migrations for existing postgres tables
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS client_id TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS item_type TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS color TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS alarm_type TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS custom_audio_url TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS google_doc_id TEXT;`); } catch(e) {}
+    try { await db.execute(sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS google_doc_url TEXT;`); } catch(e) {}
+
     appointmentsTableEnsured = true;
     return true;
   } catch (e) {
@@ -37,7 +54,6 @@ async function ensureAppointmentsTable() {
 }
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'appointments.json');
-
 
 function getFileAppointments(): Record<string, any[]> {
   try {
@@ -64,17 +80,31 @@ function saveFileAppointments(data: Record<string, any[]>) {
 }
 
 function parseRecord(r: any) {
+  const finalId = String(r.clientId || r.client_id || r.id || '');
+  const parsedVal = r.value !== undefined && r.value !== null && r.value !== '' ? Number(r.value) : undefined;
+  const isConta = r.itemType === 'conta' || r.item_type === 'conta' || ((parsedVal !== undefined && parsedVal > 0) || Boolean(r.valueStatus || r.value_status));
+
   return {
     ...r,
-    id: String(r.id),
-    value: r.value !== undefined && r.value !== null && r.value !== '' ? Number(r.value) : undefined,
+    id: finalId,
+    clientId: finalId,
+    userId: String(r.userId || r.user_id || ''),
+    title: r.title || 'Sem título',
+    date: r.date || '',
+    time: r.time || '00:00',
+    category: r.category || 'Trabalho',
+    address: r.address || undefined,
+    contact: r.contact || undefined,
+    notes: r.notes || undefined,
+    value: parsedVal,
+    valueStatus: r.valueStatus || r.value_status || (isConta ? 'a_receber' : undefined),
     reminders: typeof r.reminders === 'string' ? (r.reminders ? JSON.parse(r.reminders) : []) : (Array.isArray(r.reminders) ? r.reminders : []),
-    itemType: r.itemType || ((r.value !== undefined && r.value !== null && r.value > 0) || r.valueStatus ? 'conta' : 'compromisso'),
+    itemType: (r.itemType || r.item_type || (isConta ? 'conta' : 'compromisso')) as 'compromisso' | 'conta',
     color: r.color || '#10b981',
-    alarmType: r.alarmType || 'text',
-    customAudioUrl: r.customAudioUrl || undefined,
-    googleDocId: r.googleDocId || undefined,
-    googleDocUrl: r.googleDocUrl || undefined
+    alarmType: (r.alarmType || r.alarm_type || 'text') as 'text' | 'sound',
+    customAudioUrl: r.customAudioUrl || r.custom_audio_url || undefined,
+    googleDocId: r.googleDocId || r.google_doc_id || undefined,
+    googleDocUrl: r.googleDocUrl || r.google_doc_url || undefined
   };
 }
 
@@ -173,6 +203,7 @@ export async function POST(req: NextRequest) {
         if (sanitizedApps.length > 0) {
           await db.insert(appointments).values(
             sanitizedApps.map((a: any) => ({
+              clientId: a.id,
               userId: a.userId,
               title: a.title,
               date: a.date,
@@ -184,6 +215,12 @@ export async function POST(req: NextRequest) {
               value: a.value !== undefined && a.value !== null ? String(a.value) : null,
               valueStatus: a.valueStatus || null,
               reminders: a.reminders ? JSON.stringify(a.reminders) : null,
+              itemType: a.itemType || 'compromisso',
+              color: a.color || '#10b981',
+              alarmType: a.alarmType || 'text',
+              customAudioUrl: a.customAudioUrl || null,
+              googleDocId: a.googleDocId || null,
+              googleDocUrl: a.googleDocUrl || null,
             }))
           );
         }
@@ -236,6 +273,7 @@ export async function POST(req: NextRequest) {
     try {
       await ensureAppointmentsTable();
       await db.insert(appointments).values({
+        clientId: newItem.id,
         userId,
         title: newItem.title,
         date: newItem.date,
@@ -247,6 +285,12 @@ export async function POST(req: NextRequest) {
         value: newItem.value !== undefined ? String(newItem.value) : null,
         valueStatus: newItem.valueStatus || null,
         reminders: newItem.reminders ? JSON.stringify(newItem.reminders) : null,
+        itemType: newItem.itemType,
+        color: newItem.color,
+        alarmType: newItem.alarmType,
+        customAudioUrl: newItem.customAudioUrl || null,
+        googleDocId: newItem.googleDocId || null,
+        googleDocUrl: newItem.googleDocUrl || null,
       });
     } catch (e) {
       // DB optional fallback
@@ -269,7 +313,7 @@ export async function PUT(req: NextRequest) {
 
     const fileData = getFileAppointments();
     const userList = fileData[userId] || [];
-    const index = userList.findIndex((item: any) => item.id === id);
+    const index = userList.findIndex((item: any) => String(item.id) === id);
     if (index !== -1) {
       userList[index] = {
         ...userList[index],
@@ -295,6 +339,11 @@ export async function PUT(req: NextRequest) {
     }
 
     try {
+      await saveMySQLAppointments(userId, userList);
+    } catch(e) {}
+
+    try {
+      await ensureAppointmentsTable();
       await db.update(appointments).set({
         title: sanitizeInput(body.title),
         date: sanitizeInput(body.date),
@@ -306,7 +355,13 @@ export async function PUT(req: NextRequest) {
         value: body.value !== undefined && body.value !== null ? sanitizeInput(String(body.value)) : null,
         valueStatus: body.valueStatus ? sanitizeInput(body.valueStatus) : null,
         reminders: body.reminders ? JSON.stringify(body.reminders) : null,
-      }).where(eq(appointments.id, Number(id)));
+        itemType: body.itemType || null,
+        color: body.color || null,
+        alarmType: body.alarmType || null,
+        customAudioUrl: body.customAudioUrl || null,
+        googleDocId: body.googleDocId || null,
+        googleDocUrl: body.googleDocUrl || null,
+      }).where(eq(appointments.clientId, id));
     } catch (e) {
       // DB optional fallback
     }
@@ -327,7 +382,7 @@ export async function DELETE(req: NextRequest) {
     if (userId) {
       const fileData = getFileAppointments();
       if (fileData[userId]) {
-        fileData[userId] = fileData[userId].filter((item: any) => String(item.id) !== String(id));
+        fileData[userId] = fileData[userId].filter((item: any) => String(item.id) !== String(id) && String(item.clientId) !== String(id));
         saveFileAppointments(fileData);
       }
       try {
@@ -338,7 +393,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-      await db.delete(appointments).where(eq(appointments.id, Number(id)));
+      await ensureAppointmentsTable();
+      await db.delete(appointments).where(eq(appointments.clientId, id));
     } catch (e) {
       // DB optional fallback
     }

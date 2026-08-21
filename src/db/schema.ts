@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   voiceEnabled: boolean("voice_enabled").default(false),
   mfaPin: text("mfa_pin"),
   visualEdits: text("visual_edits"),
+  isAffiliate: boolean("is_affiliate").default(false),
 });
 
 export const appointments = pgTable("appointments", {
@@ -46,5 +47,12 @@ export const appointments = pgTable("appointments", {
   value: text("value"),
   valueStatus: text("value_status"),
   reminders: text("reminders"), // Stored as a serialized JSON array of reminder offsets (e.g. ['15m'])
+  itemType: text("item_type"),
+  color: text("color"),
+  alarmType: text("alarm_type"),
+  customAudioUrl: text("custom_audio_url"),
+  googleDocId: text("google_doc_id"),
+  googleDocUrl: text("google_doc_url"),
+  clientId: text("client_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

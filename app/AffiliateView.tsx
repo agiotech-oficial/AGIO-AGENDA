@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationBar } from '../components/NavigationBar';
 import { AffiliateLeads } from '../components/AffiliateLeads';
 import { getNormalizedMediaUrl, DEFAULT_MARKETING_MATERIALS } from '../lib/utils';
@@ -127,6 +127,35 @@ export function AffiliateView({
 }: AffiliateViewProps) {
   const [isLogoMenuOpen, setIsLogoMenuOpen] = useState(false);
 
+  const isUserAffiliate = currentUser?.isAffiliate || (() => {
+    if (!currentUser) return false;
+    const isDalecio = 
+      (currentUser?.email && currentUser.email.toLowerCase().trim() === 'agiotech.oficial@gmail.com') ||
+      (currentUser?.cpf && currentUser.cpf.replace(/\D/g, '') === '10896050726') ||
+      (currentUser?.name && (currentUser.name.toUpperCase().includes('DALÉCIO') || currentUser.name.toUpperCase().includes('DALECIO')));
+    if (isDalecio) return true;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+        const found = storedUsers.find((u: any) => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email) || (currentUser.cpf && u.cpf === currentUser.cpf));
+        if (found?.isAffiliate) return true;
+
+        const storedAffiliates = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
+        const affFound = storedAffiliates.find((u: any) => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email) || (currentUser.cpf && u.cpf === currentUser.cpf));
+        if (affFound?.isAffiliate || affFound) return true;
+      } catch (e) {}
+    }
+    return false;
+  })();
+
+  useEffect(() => {
+    if (currentUser && !currentUser.isAffiliate && isUserAffiliate) {
+      setCurrentUser({ ...currentUser, isAffiliate: true });
+      handleUpdateUserData({ isAffiliate: true });
+    }
+  }, [currentUser, isUserAffiliate]);
+
   return (
     <div className="bg-brand text-white min-h-screen flex flex-col font-sans">
       {/* Header */}
@@ -216,7 +245,7 @@ export function AffiliateView({
         </div>
 
         <div className="bg-[#06402B]/80 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-xl flex flex-col gap-6">
-          {currentUser && !currentUser.isAffiliate ? (
+          {currentUser && !isUserAffiliate ? (
             <div className="flex flex-col items-center gap-4 text-center max-w-2xl mx-auto py-6">
               <span className="material-symbols-outlined text-[64px] text-white/90 mb-2">monetization_on</span>
               <h2
@@ -238,12 +267,27 @@ export function AffiliateView({
                   onClick={() => {
                     const updatedUser = { ...currentUser, isAffiliate: true };
                     const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
-                    const userIndex = storedUsers.findIndex((u: any) => u.id === currentUser.id);
+                    const userIndex = storedUsers.findIndex((u: any) => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email));
                     if (userIndex !== -1) {
-                      storedUsers[userIndex] = updatedUser;
+                      storedUsers[userIndex] = { ...storedUsers[userIndex], ...updatedUser, isAffiliate: true };
+                      localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
+                    } else {
+                      storedUsers.push(updatedUser);
                       localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
                     }
+                    
+                    // Also update agenda_affiliate_users
+                    const storedAffiliates = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
+                    const affIndex = storedAffiliates.findIndex((u: any) => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email));
+                    if (affIndex !== -1) {
+                      storedAffiliates[affIndex] = { ...storedAffiliates[affIndex], ...updatedUser, isAffiliate: true };
+                    } else {
+                      storedAffiliates.push(updatedUser);
+                    }
+                    localStorage.setItem('agenda_affiliate_users', JSON.stringify(storedAffiliates));
+
                     setCurrentUser(updatedUser);
+                    handleUpdateUserData({ isAffiliate: true });
                     alert('Bem-vindo ao Programa de Afiliados!');
                   }}
                   className="w-full max-w-md bg-white text-black hover:-translate-y-0.5 hover:shadow-lg py-3.5 rounded-xl font-bold text-base transition-all active:scale-95 cursor-pointer"

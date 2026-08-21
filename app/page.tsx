@@ -3634,34 +3634,7 @@ export default function AgendaApp() {
   };
 
 
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    const resetActivity = () => {
-      localStorage.setItem('agenda_last_activity', Date.now().toString());
-    };
 
-    window.addEventListener('mousemove', resetActivity);
-    window.addEventListener('keydown', resetActivity);
-    window.addEventListener('click', resetActivity);
-    window.addEventListener('scroll', resetActivity);
-
-    const checkTimeout = setInterval(() => {
-      const lastActivity = parseInt(localStorage.getItem('agenda_last_activity') || '0');
-      if (lastActivity && Date.now() - lastActivity > 10 * 60 * 1000) {
-        alert("Sessão expirada por inatividade (10 minutos).");
-        handleLogout();
-      }
-    }, 10000);
-
-    return () => {
-      window.removeEventListener('mousemove', resetActivity);
-      window.removeEventListener('keydown', resetActivity);
-      window.removeEventListener('click', resetActivity);
-      window.removeEventListener('scroll', resetActivity);
-      clearInterval(checkTimeout);
-    };
-  }, [currentUser]);
 
 
   useEffect(() => {
@@ -3676,6 +3649,18 @@ export default function AgendaApp() {
               (firebaseUser.email && firebaseUser.email.toLowerCase().trim() === 'agiotech.oficial@gmail.com') ||
               (dbUser?.cpf && dbUser.cpf.replace(/\D/g, '') === '10896050726') ||
               (dbUser?.name && (dbUser.name.toUpperCase().includes('DALÉCIO') || dbUser.name.toUpperCase().includes('DALECIO')));
+
+            let isAff = Boolean(dbUser?.isAffiliate) || isDalecioAdmin;
+            if (!isAff && typeof window !== 'undefined') {
+              try {
+                const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+                const localU = storedUsers.find((u: any) => u.id === dbUser?.id || (dbUser?.email && u.email === dbUser.email) || (firebaseUser.email && u.email === firebaseUser.email));
+                if (localU?.isAffiliate) isAff = true;
+                const storedAffs = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
+                const localAff = storedAffs.find((u: any) => u.id === dbUser?.id || (dbUser?.email && u.email === dbUser.email) || (firebaseUser.email && u.email === firebaseUser.email));
+                if (localAff) isAff = true;
+              } catch (e) {}
+            }
 
             const resolvedUser = {
               id: (dbUser?.id ?? dbUser?.firebaseUid ?? firebaseUser?.uid ?? Math.random()).toString(),
@@ -3704,7 +3689,8 @@ export default function AgendaApp() {
               soundEnabled: dbUser?.soundEnabled,
               voiceEnabled: dbUser?.voiceEnabled,
               mfaPin: dbUser?.mfaPin || "",
-              visualEdits: dbUser?.visualEdits || ""
+              visualEdits: dbUser?.visualEdits || "",
+              isAffiliate: isAff,
             };
 
             setCurrentUser(resolvedUser as any);
@@ -3741,9 +3727,12 @@ export default function AgendaApp() {
                  const map = new Map<string, Appointment>();
                  // Add server items first
                  formatted.forEach((item: Appointment) => { if (item.id) map.set(String(item.id), item); });
-                 // Local items take precedence or add non-synced items
+                 // Local items take precedence and preserve user changes (e.g. colors, accounts, edits)
                  localParsed.forEach((item: Appointment) => {
-                   if (item.id) map.set(String(item.id), item);
+                   if (item.id) {
+                     const existing = map.get(String(item.id));
+                     map.set(String(item.id), { ...(existing || {}), ...item });
+                   }
                  });
                  const merged = Array.from(map.values());
                  setAppointments(merged);
@@ -4086,11 +4075,28 @@ export default function AgendaApp() {
     const updatedUser = { ...currentUser, ...changes };
     setCurrentUser(updatedUser);
     
-    let storedUsers: AffiliateUser[] = JSON.parse(localStorage.getItem('agenda_users') || '[]');
-    const index = storedUsers.findIndex(u => u.id === currentUser.id);
-    if (index !== -1) {
-      storedUsers[index] = updatedUser;
+    try {
+      let storedUsers: AffiliateUser[] = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+      const index = storedUsers.findIndex(u => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email) || (currentUser.cpf && u.cpf === currentUser.cpf));
+      if (index !== -1) {
+        storedUsers[index] = { ...storedUsers[index], ...updatedUser };
+      } else {
+        storedUsers.push(updatedUser);
+      }
       localStorage.setItem('agenda_users', JSON.stringify(storedUsers));
+
+      if (updatedUser.isAffiliate) {
+        let storedAffs: any[] = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
+        const affIndex = storedAffs.findIndex(u => u.id === currentUser.id || (currentUser.email && u.email === currentUser.email) || (currentUser.cpf && u.cpf === currentUser.cpf));
+        if (affIndex !== -1) {
+          storedAffs[affIndex] = { ...storedAffs[affIndex], ...updatedUser };
+        } else {
+          storedAffs.push(updatedUser);
+        }
+        localStorage.setItem('agenda_affiliate_users', JSON.stringify(storedAffs));
+      }
+    } catch (err) {
+      console.error("Erro ao salvar usuário no localStorage:", err);
     }
 
     try {
@@ -4099,6 +4105,11 @@ export default function AgendaApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firebaseUid: currentUser.firebaseUid,
+          id: currentUser.id,
+          email: currentUser.email,
+          name: currentUser.name,
+          whatsapp: currentUser.whatsapp,
+          cpf: currentUser.cpf,
           ...changes
         })
       });
@@ -4585,11 +4596,24 @@ export default function AgendaApp() {
         if (isCancelled) return;
         if (Array.isArray(serverApps) && serverApps.length > 0) {
           setAppointments(prev => {
+            let localList = prev;
+            if (typeof window !== 'undefined') {
+              try {
+                const savedLocal = localStorage.getItem('agenda_appointments');
+                if (savedLocal) {
+                  const parsed = JSON.parse(savedLocal);
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    localList = parsed;
+                  }
+                }
+              } catch(e) {}
+            }
+
             const combinedMap = new Map<string, Appointment>();
             serverApps.forEach((sa: any) => {
               if (sa.id) combinedMap.set(String(sa.id), sa);
             });
-            prev.forEach(pa => {
+            localList.forEach(pa => {
               if (pa.id) {
                 const existing = combinedMap.get(String(pa.id));
                 combinedMap.set(String(pa.id), { ...(existing || {}), ...pa });
@@ -5050,6 +5074,7 @@ ${whatsAppMsg}`);
         } catch(e) {}
       }
     }
+    setEditingAppointmentId(null);
     setFormData(prev => ({
       ...prev,
       title: '',
@@ -5076,19 +5101,20 @@ ${whatsAppMsg}`);
       let updated: Appointment[];
       if (editId) {
         updated = prev.map(app => 
-          app.id === editId ? { 
+          String(app.id) === String(editId) ? { 
             ...app, 
             ...dataToSave, 
+            id: app.id,
             category: dataToSave.category as CategoryType, 
-            color: dataToSave.color || '#10b981', 
-            itemType: dataToSave.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
-            alarmType: dataToSave.alarmType || 'text',
-            customAudioUrl: dataToSave.customAudioUrl || ''
+            color: dataToSave.color || app.color || '#10b981', 
+            itemType: dataToSave.itemType || app.itemType || (view === 'accounts' ? 'conta' : 'compromisso'),
+            alarmType: dataToSave.alarmType || app.alarmType || 'text',
+            customAudioUrl: dataToSave.customAudioUrl || app.customAudioUrl || ''
           } : app
-        ).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+        ).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
       } else {
         const newAppointment: Appointment = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).substring(2, 11),
           ...dataToSave,
           category: dataToSave.category as CategoryType,
           color: dataToSave.color || '#10b981',
@@ -5096,11 +5122,20 @@ ${whatsAppMsg}`);
           alarmType: dataToSave.alarmType || 'text',
           customAudioUrl: dataToSave.customAudioUrl || '',
         };
-        updated = [...prev, newAppointment].sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+        updated = [...prev, newAppointment].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
       }
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+      }
+
+      const syncKey = currentUser?.id || currentUser?.firebaseUid || currentUser?.email || currentUser?.whatsapp;
+      if (syncKey) {
+        fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: syncKey, appointments: updated })
+        }).catch(err => console.error("Error syncing appointments:", err));
       }
 
       return updated;
@@ -5199,9 +5234,17 @@ ${whatsAppMsg}`);
   const handleDeleteAppointment = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este compromisso?')) {
       setAppointments((prev: Appointment[]) => {
-        const updated = prev.filter(app => app.id !== id);
+        const updated = prev.filter(app => String(app.id) !== String(id));
         if (typeof window !== 'undefined') {
           localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+        }
+        const syncKey = currentUser?.id || currentUser?.firebaseUid || currentUser?.email || currentUser?.whatsapp;
+        if (syncKey) {
+          fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: syncKey, appointments: updated })
+          }).catch(err => console.error("Error syncing after deletion:", err));
         }
         return updated;
       });
@@ -5708,7 +5751,20 @@ ${notesDraft}`;
           soundEnabled: dbUser?.soundEnabled,
           voiceEnabled: dbUser?.voiceEnabled,
           mfaPin: dbUser?.mfaPin || "",
-          visualEdits: dbUser?.visualEdits || ""
+          visualEdits: dbUser?.visualEdits || "",
+          isAffiliate: Boolean(dbUser?.isAffiliate) || Boolean(isAffiliateOptIn) || isDalecioAdmin || (() => {
+            if (typeof window !== 'undefined') {
+              try {
+                const storedUsers = JSON.parse(localStorage.getItem('agenda_users') || '[]');
+                const localU = storedUsers.find((u: any) => u.id === dbUser?.id || (dbUser?.email && u.email === dbUser.email) || (firebaseUser.email && u.email === firebaseUser.email));
+                if (localU?.isAffiliate) return true;
+                const storedAffs = JSON.parse(localStorage.getItem('agenda_affiliate_users') || '[]');
+                const localAff = storedAffs.find((u: any) => u.id === dbUser?.id || (dbUser?.email && u.email === dbUser.email) || (firebaseUser.email && u.email === firebaseUser.email));
+                if (localAff) return true;
+              } catch (e) {}
+            }
+            return false;
+          })()
        };
        
        setCurrentUser(affiliateUser as any);
@@ -5727,34 +5783,43 @@ ${notesDraft}`;
            console.error("Erro ao carregar visualEdits", e);
          }
        }
-
-       localStorage.setItem('agenda_last_activity', Date.now().toString());
       
-      // Load appointments from Postgres
+      // Load appointments from Postgres & MySQL
       const appsRes = await fetch(`/api/appointments?userId=${firebaseUser.uid}`);
       if (appsRes.ok) {
          const appsData = await appsRes.json();
+         let localParsed: Appointment[] = [];
+         const localSaved = localStorage.getItem('agenda_appointments');
+         if (localSaved) {
+           try {
+             const p = JSON.parse(localSaved);
+             if (Array.isArray(p)) localParsed = p;
+           } catch(e) {}
+         }
+
          if (Array.isArray(appsData) && appsData.length > 0) {
            const formatted = appsData.map((a: any) => ({
               ...a,
               id: (a?.id ?? a?._id ?? Math.random()).toString()
            }));
-           setAppointments(formatted);
-           localStorage.setItem('agenda_appointments', JSON.stringify(formatted));
-         } else {
-           const localSaved = localStorage.getItem('agenda_appointments');
-           if (localSaved) {
-             try {
-               const parsedSaved = JSON.parse(localSaved);
-               if (Array.isArray(parsedSaved) && parsedSaved.length > 0) {
-                 fetch('/api/appointments', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ userId: firebaseUser.uid, appointments: parsedSaved })
-                 }).catch(() => {});
-               }
-             } catch(e) {}
-           }
+           const map = new Map<string, Appointment>();
+           formatted.forEach((item: Appointment) => { if (item.id) map.set(String(item.id), item); });
+           localParsed.forEach((item: Appointment) => {
+             if (item.id) {
+               const existing = map.get(String(item.id));
+               map.set(String(item.id), { ...(existing || {}), ...item });
+             }
+           });
+           const merged = Array.from(map.values());
+           setAppointments(merged);
+           localStorage.setItem('agenda_appointments', JSON.stringify(merged));
+         } else if (localParsed.length > 0) {
+           setAppointments(localParsed);
+           fetch('/api/appointments', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ userId: firebaseUser.uid, appointments: localParsed })
+           }).catch(() => {});
          }
       }
       
@@ -6274,9 +6339,17 @@ ${notesDraft}`;
                         : (isEs ? '¿Está seguro de que deseja eliminar esta cita?' : isEn ? 'Are you sure you want to delete this appointment?' : 'Tem certeza que deseja excluir este compromisso?');
                       if (confirm(confirmText)) {
                         setAppointments((prev: Appointment[]) => {
-                          const updated = prev.filter(app => app.id !== editingAppointmentId);
+                          const updated = prev.filter(app => String(app.id) !== String(editingAppointmentId));
                           if (typeof window !== 'undefined') {
                             localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+                          }
+                          const syncKey = currentUser?.id || currentUser?.firebaseUid || currentUser?.email || currentUser?.whatsapp;
+                          if (syncKey) {
+                            fetch('/api/appointments', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: syncKey, appointments: updated })
+                            }).catch(() => {});
                           }
                           return updated;
                         });
@@ -6801,9 +6874,17 @@ ${notesDraft}`;
                         : (isEs ? '¿Está seguro de que desea eliminar esta cita?' : isEn ? 'Are you sure you want to delete this appointment?' : 'Tem certeza que deseja excluir este compromisso?');
                       if (confirm(confirmText)) {
                         setAppointments((prev: Appointment[]) => {
-                          const updated = prev.filter(app => app.id !== editingAppointmentId);
+                          const updated = prev.filter(app => String(app.id) !== String(editingAppointmentId));
                           if (typeof window !== 'undefined') {
                             localStorage.setItem('agenda_appointments', JSON.stringify(updated));
+                          }
+                          const syncKey = currentUser?.id || currentUser?.firebaseUid || currentUser?.email || currentUser?.whatsapp;
+                          if (syncKey) {
+                            fetch('/api/appointments', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: syncKey, appointments: updated })
+                            }).catch(() => {});
                           }
                           return updated;
                         });

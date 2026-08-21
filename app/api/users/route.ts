@@ -59,6 +59,7 @@ function updateOrInsertLocalUser(userToSave: any) {
     const merged = {
       ...existing,
       ...userToSave,
+      isAffiliate: userToSave.isAffiliate !== undefined ? Boolean(userToSave.isAffiliate) : Boolean(existing.isAffiliate),
       // Preserve existing CPF/whatsapp if new input is empty
       cpf: userToSave.cpf && userToSave.cpf.trim() !== '' ? userToSave.cpf : (existing.cpf || ''),
       whatsapp: userToSave.whatsapp && userToSave.whatsapp.trim() !== '' ? userToSave.whatsapp : (existing.whatsapp || ''),
@@ -71,6 +72,7 @@ function updateOrInsertLocalUser(userToSave: any) {
     const newUser = {
       id: userToSave.id || userToSave.firebaseUid || Date.now().toString(),
       createdAt: new Date().toISOString(),
+      isAffiliate: Boolean(userToSave.isAffiliate),
       ...userToSave
     };
     localList.push(newUser);
@@ -125,7 +127,8 @@ async function ensureUsersTable() {
         sound_enabled BOOLEAN DEFAULT TRUE,
         voice_enabled BOOLEAN DEFAULT FALSE,
         mfa_pin TEXT,
-        visual_edits TEXT
+        visual_edits TEXT,
+        is_affiliate BOOLEAN DEFAULT FALSE
       );
     `);
 
@@ -153,7 +156,8 @@ async function ensureUsersTable() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS sound_enabled BOOLEAN DEFAULT TRUE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_enabled BOOLEAN DEFAULT FALSE`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_pin TEXT`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS visual_edits TEXT`
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS visual_edits TEXT`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_affiliate BOOLEAN DEFAULT FALSE`
     ];
 
     for (const q of alterQueries) {
@@ -254,6 +258,7 @@ export async function GET(req: NextRequest) {
           userFound = {
             ...userFound,
             ...dbU,
+            isAffiliate: dbU.isAffiliate !== undefined ? Boolean(dbU.isAffiliate) : (userFound?.isAffiliate !== undefined ? Boolean(userFound.isAffiliate) : false),
             cpf: dbU.cpf || userFound?.cpf || '',
             whatsapp: dbU.whatsapp || userFound?.whatsapp || ''
           };
@@ -270,6 +275,7 @@ export async function GET(req: NextRequest) {
       userFound.email = 'agiotech.oficial@gmail.com';
       userFound.cpf = userFound.cpf || '10896050726';
       userFound.plan = 'premium';
+      userFound.isAffiliate = true;
     }
 
     return NextResponse.json(userFound || null);
@@ -314,6 +320,7 @@ export async function POST(req: NextRequest) {
     if (body.voiceEnabled !== undefined) dataToSet.voiceEnabled = body.voiceEnabled;
     if (body.mfaPin !== undefined) dataToSet.mfaPin = body.mfaPin;
     if (body.visualEdits !== undefined) dataToSet.visualEdits = body.visualEdits;
+    if (body.isAffiliate !== undefined) dataToSet.isAffiliate = Boolean(body.isAffiliate);
 
     const isDalecioAdmin = 
       (userEmail && userEmail.toLowerCase() === 'agiotech.oficial@gmail.com') ||

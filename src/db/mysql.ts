@@ -81,6 +81,7 @@ export async function ensureMySQLTables() {
     await p.query(`
       CREATE TABLE IF NOT EXISTS appointments (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        client_id VARCHAR(255),
         user_id VARCHAR(255) NOT NULL,
         title VARCHAR(255) NOT NULL,
         date VARCHAR(50) NOT NULL,
@@ -92,10 +93,26 @@ export async function ensureMySQLTables() {
         value VARCHAR(50),
         value_status VARCHAR(50),
         reminders TEXT,
+        item_type VARCHAR(50),
+        color VARCHAR(50),
+        alarm_type VARCHAR(50),
+        custom_audio_url TEXT,
+        google_doc_id VARCHAR(255),
+        google_doc_url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id)
+        INDEX idx_user_id (user_id),
+        INDEX idx_client_id (client_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Ensure columns exist if table was created previously
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN client_id VARCHAR(255);`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN item_type VARCHAR(50);`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN color VARCHAR(50);`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN alarm_type VARCHAR(50);`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN custom_audio_url TEXT;`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN google_doc_id VARCHAR(255);`); } catch(e) {}
+    try { await p.query(`ALTER TABLE appointments ADD COLUMN google_doc_url TEXT;`); } catch(e) {}
 
     tablesCreated = true;
     return true;
