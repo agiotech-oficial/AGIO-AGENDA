@@ -5,7 +5,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  turbopack: {},
   // Allow AI Studio and custom subdomains for cross-origin dev assets
   crossOrigin: 'anonymous',
   allowedDevOrigins: [
