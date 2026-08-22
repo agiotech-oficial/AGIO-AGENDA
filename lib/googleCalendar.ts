@@ -79,7 +79,18 @@ export const connectGoogleCalendar = async (): Promise<{ success: boolean; user?
     }
   } catch (error: any) {
     console.error('Erro ao conectar Google Calendar:', error);
-    return { success: false, error: error.message || 'Erro de autenticação' };
+    let friendlyMessage = error.message || 'Erro de autenticação';
+
+    if (error?.code === 'auth/unauthorized-domain' || (error?.message && error.message.includes('unauthorized domain'))) {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'seu domínio';
+      friendlyMessage = `O domínio "${currentHost}" precisa ser adicionado na lista de "Domínios Autorizados" do seu Firebase Console (Authentication > Configurações > Domínios autorizados).`;
+    } else if (error?.code === 'auth/popup-closed-by-user') {
+      friendlyMessage = 'A janela de autenticação do Google foi fechada antes da conclusão.';
+    } else if (error?.code === 'auth/popup-blocked') {
+      friendlyMessage = 'O pop-up de login foi bloqueado pelo seu navegador. Por favor, permita pop-ups para este site.';
+    }
+
+    return { success: false, error: friendlyMessage };
   } finally {
     isConnecting = false;
   }

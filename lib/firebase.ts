@@ -13,11 +13,19 @@ if (!getApps().length) {
 
 let analytics: Analytics | null = null;
 if (typeof window !== 'undefined') {
-  isSupported().then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    }
-  }).catch(() => {});
+  isSupported()
+    .then((supported) => {
+      if (supported) {
+        try {
+          analytics = getAnalytics(app);
+        } catch {
+          // Ignore analytics initialization failure in sandboxed environments
+        }
+      }
+    })
+    .catch(() => {
+      // Ignore unsupported or fetch rejection errors
+    });
 }
 
 let _db: Firestore | null = null;
