@@ -29,6 +29,15 @@ import AddressLocationPicker from '../components/AddressLocationPicker';
 import { autoCaptureDeviceAndLocation, getDeviceAndMacInfo, captureUserLocation } from '../lib/deviceLocation';
 import { registerPushServiceWorker, testNativePushNotification, syncUpcomingAppointmentsToPushServer } from '../lib/pushNotifications';
 import { requestScreenWakeLock, releaseScreenWakeLock } from '../lib/wakeLock';
+import {
+  initGoogleCalendarAuth,
+  connectGoogleCalendar,
+  disconnectGoogleCalendar,
+  isGoogleCalendarConnected,
+  injectAppointmentToGoogleCalendar,
+  deleteEventFromGoogleCalendar,
+  subscribeToGCalAuth
+} from '../lib/googleCalendar';
 
 const Payment = nextDynamic(
   () => import('@mercadopago/sdk-react').then((mod) => mod.Payment),
@@ -82,6 +91,7 @@ interface Appointment {
   itemType?: 'compromisso' | 'conta';
   alarmType?: 'text' | 'sound';
   customAudioUrl?: string;
+  gcalEventId?: string;
 }
 
 const shareAppointment = (app: Appointment) => {
@@ -2517,7 +2527,29 @@ function DailyAgendaView({
   setSoundEnabled,
   voiceEnabled,
   setVoiceEnabled,
-  onLogout
+  alarmLeadTimes,
+  setAlarmLeadTimes,
+  alarmType,
+  setAlarmType,
+  customAudioUrl,
+  setCustomAudioUrl,
+  isAudioPlaying,
+  playAlarmSound,
+  stopActiveAudio,
+  toggleLeadTime,
+  startRecording,
+  stopRecording,
+  isRecording,
+  handleFileUpload,
+  testAlarm,
+  onLogout,
+  isGCalConnected = false,
+  isConnectingGCal = false,
+  isSyncingGCal = false,
+  gcalFeedbackMsg = null,
+  handleConnectGCal,
+  handleDisconnectGCal,
+  handleSyncAllGCal
 }: {
   selectedDate: string;
   userName: string;
@@ -2537,7 +2569,29 @@ function DailyAgendaView({
   setSoundEnabled: (enabled: boolean) => void;
   voiceEnabled: boolean;
   setVoiceEnabled: (enabled: boolean) => void;
+  alarmLeadTimes: string[];
+  setAlarmLeadTimes: React.Dispatch<React.SetStateAction<string[]>>;
+  alarmType: 'text' | 'sound';
+  setAlarmType: React.Dispatch<React.SetStateAction<'text' | 'sound'>>;
+  customAudioUrl: string | null;
+  setCustomAudioUrl: React.Dispatch<React.SetStateAction<string | null>>;
+  isAudioPlaying: boolean;
+  playAlarmSound: (audioUrl?: string | null) => void;
+  stopActiveAudio: () => void;
+  toggleLeadTime: (val: string) => void;
+  startRecording: () => Promise<void>;
+  stopRecording: () => void;
+  isRecording: boolean;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  testAlarm: () => void;
   onLogout?: () => void;
+  isGCalConnected?: boolean;
+  isConnectingGCal?: boolean;
+  isSyncingGCal?: boolean;
+  gcalFeedbackMsg?: string | null;
+  handleConnectGCal?: () => Promise<void>;
+  handleDisconnectGCal?: () => void;
+  handleSyncAllGCal?: () => Promise<void>;
 }) {
   const [isLogoMenuOpen, setIsLogoMenuOpen] = useState(false);
   const [rowCount, setRowCount] = useState<number>(30);
@@ -2628,6 +2682,17 @@ function DailyAgendaView({
       return updated;
     });
 
+    if (isGoogleCalendarConnected()) {
+      injectAppointmentToGoogleCalendar(newApp, {
+        leadTimes: defaultReminders.length > 0 ? defaultReminders : alarmLeadTimes,
+        autoAlarmSound: alarmType === 'sound'
+      }).then(res => {
+        if (res.success && res.eventId) {
+          setAppointments((curr: Appointment[]) => curr.map(a => String(a.id) === String(newApp.id) ? { ...a, gcalEventId: res.eventId } : a));
+        }
+      }).catch(err => console.log('GCal inline silent injection:', err));
+    }
+
     setRowDrafts(prev => {
       const next = { ...prev };
       delete next[index];
@@ -2641,18 +2706,7 @@ function DailyAgendaView({
 
   const currentMonthStr = selectedDate.substring(0, 7);
 
-  // --- ALARME INTELIGENTE STATES ---
-  const [alarmLeadTimes, setAlarmLeadTimes] = useState<string[]>(['0']);
-  const [alarmType, setAlarmType] = useState<'text' | 'sound'>('text');
-  const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<BlobPart[]>([]);
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const [activeAlerts, setActiveAlerts] = useState<Appointment[]>([]);
-  const alertTriggeredRef = useRef<Record<string, boolean>>({});
-
+  // --- ALARME INTELIGENTE PUSH TEST HELPER ---
   const [isTestingPush, setIsTestingPush] = useState(false);
   const [pushFeedbackMsg, setPushFeedbackMsg] = useState<string | null>(null);
 
@@ -2671,247 +2725,6 @@ function DailyAgendaView({
     } finally {
       setIsTestingPush(false);
       setTimeout(() => setPushFeedbackMsg(null), 8000);
-    }
-  };
-
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
-  const synthTimerRef = useRef<any>(null);
-  const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
-
-  const stopActiveAudio = () => {
-    if (activeAudioRef.current) {
-      activeAudioRef.current.pause();
-      activeAudioRef.current.currentTime = 0;
-      activeAudioRef.current = null;
-    }
-    if (synthTimerRef.current) {
-      clearInterval(synthTimerRef.current);
-      synthTimerRef.current = null;
-    }
-    setIsAudioPlaying(false);
-  };
-
-  const playAlarmSound = (audioUrl?: string | null) => {
-    stopActiveAudio();
-    if (audioUrl) {
-      try {
-        const audio = new Audio(audioUrl);
-        audio.loop = true;
-        audio.play().then(() => {
-          activeAudioRef.current = audio;
-          setIsAudioPlaying(true);
-        }).catch(err => {
-          console.error("Erro ao tocar áudio personalizado:", err);
-          setIsAudioPlaying(false);
-        });
-      } catch (e) {
-        console.error(e);
-        setIsAudioPlaying(false);
-      }
-    } else {
-      // Fallback Web Audio API synthesized alarm sound loop
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const ctx = new AudioContextClass();
-          const playBeep = () => {
-            if (ctx.state === 'suspended') {
-              ctx.resume();
-            }
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.3);
-          };
-          playBeep();
-          synthTimerRef.current = setInterval(playBeep, 1200);
-          setIsAudioPlaying(true);
-        }
-      } catch (e) {
-        console.error("Erro Web Audio API:", e);
-      }
-    }
-  };
-
-  const toggleLeadTime = (val: string) => {
-    setAlarmLeadTimes(prev => {
-      if (prev.includes(val)) {
-        const next = prev.filter(v => v !== val);
-        return next.length > 0 ? next : ['0'];
-      } else {
-        return [...prev, val];
-      }
-    });
-  };
-
-  // Carrega configurações iniciais do alarme
-  useEffect(() => {
-    import('localforage').then((localforage) => {
-      localforage.default.getItem('agenda_alarm_settings').then((saved: any) => {
-        if (saved) {
-          if (Array.isArray(saved.alarmLeadTimes) && saved.alarmLeadTimes.length > 0) {
-            setAlarmLeadTimes(saved.alarmLeadTimes);
-          } else if (saved.alarmLeadTime) {
-            setAlarmLeadTimes([String(saved.alarmLeadTime)]);
-          }
-          if (saved.alarmType) setAlarmType(saved.alarmType);
-          if (saved.customAudioUrl) setCustomAudioUrl(saved.customAudioUrl);
-        } else {
-          // fallback
-          const oldSaved = localStorage.getItem('agenda_alarm_settings');
-          if (oldSaved) {
-            try {
-              const parsed = JSON.parse(oldSaved);
-              if (Array.isArray(parsed.alarmLeadTimes) && parsed.alarmLeadTimes.length > 0) {
-                setAlarmLeadTimes(parsed.alarmLeadTimes);
-              } else if (parsed.alarmLeadTime) {
-                setAlarmLeadTimes([String(parsed.alarmLeadTime)]);
-              }
-              if (parsed.alarmType) setAlarmType(parsed.alarmType);
-              if (parsed.customAudioUrl) setCustomAudioUrl(parsed.customAudioUrl);
-            } catch (e) {
-              console.error('Erro ao ler agenda_alarm_settings', e);
-            }
-          }
-        }
-      });
-    });
-    
-    // Solicitar permissão de notificação nativa do navegador
-    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // Salva configurações sempre que houver alteração
-  useEffect(() => {
-    import('localforage').then((localforage) => {
-      localforage.default.setItem('agenda_alarm_settings', {
-        alarmLeadTimes,
-        alarmLeadTime: alarmLeadTimes[0] || '0',
-        alarmType,
-        customAudioUrl
-      }).catch((err) => console.error('Erro ao salvar agenda_alarm_settings no localforage', err));
-    });
-  }, [alarmLeadTimes, alarmType, customAudioUrl]);
-
-  // Lógica de disparo contínuo em background (setInterval)
-  useEffect(() => {
-    const checkAlarms = () => {
-      const now = new Date();
-      // Milissegundos desde o início do dia
-      const nowMs = (now.getHours() * 60 + now.getMinutes()) * 60 * 1000 + now.getSeconds() * 1000;
-
-      appointments.forEach(app => {
-        if (app.date === selectedDate && app.time) {
-          const [hours, minutes] = app.time.split(':').map(Number);
-          const appTimeMs = (hours * 60 + minutes) * 60 * 1000;
-
-          alarmLeadTimes.forEach(ltStr => {
-            const leadTimeMs = parseInt(ltStr, 10) * 60 * 1000;
-            const targetTimeMs = appTimeMs - leadTimeMs;
-
-            // Dispara se a hora atual for exatamente a target time (Tolerância de 30 segundos do setInterval)
-            if (nowMs >= targetTimeMs && nowMs < targetTimeMs + 30000) {
-              const alertId = `${app.id}-${targetTimeMs}-${ltStr}`;
-              if (!alertTriggeredRef.current[alertId]) {
-                alertTriggeredRef.current[alertId] = true;
-
-                if (alarmType === 'text') {
-                  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    new Notification('Ágio Agenda', { body: `Lembrete: ${app.title} às ${app.time}` });
-                  }
-                  setActiveAlerts(prev => [...prev, app]);
-                } else if (alarmType === 'sound') {
-                  playAlarmSound(customAudioUrl);
-                  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                    new Notification('Ágio Agenda', { body: `Lembrete: ${app.title} às ${app.time}` });
-                  }
-                  setActiveAlerts(prev => [...prev, app]);
-                }
-              }
-            }
-          });
-        }
-      });
-    };
-
-    checkIntervalRef.current = setInterval(checkAlarms, 10000); // Check a cada 10 segundos
-    return () => {
-      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
-    };
-  }, [appointments, selectedDate, alarmLeadTimes, alarmType, customAudioUrl]);
-
-  // Função para gravar áudio com Microfone (MediaRecorder API)
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          setCustomAudioUrl(reader.result as string);
-        };
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Erro ao acessar microfone:", err);
-      alert("Não foi possível acessar o microfone.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  // Função para upload de arquivo de áudio
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        setCustomAudioUrl(reader.result as string);
-      };
-    }
-  };
-
-  const testAlarm = () => {
-    if (isAudioPlaying) {
-      stopActiveAudio();
-    } else if (alarmType === 'sound') {
-      playAlarmSound(customAudioUrl);
-    } else {
-      stopActiveAudio();
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        new Notification('Ágio Agenda - Teste', { body: 'Este é um teste de notificação do sistema.' });
-      } else {
-        alert("Ative as notificações do navegador para testar o alerta de texto.");
-      }
     }
   };
 
@@ -3181,6 +2994,90 @@ function DailyAgendaView({
                  </button>
                </div>
             </div>
+
+            {/* Injeção Automática Silenciosa no Google Agenda */}
+            <div className="mt-4 pt-4 border-t border-white/10 bg-[#022116]/80 p-4 rounded-xl border border-emerald-500/30 flex flex-col gap-3 shadow-inner">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">event_available</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm font-bold text-white">
+                        Injeção Automática no Google Agenda
+                      </h4>
+                      {isGCalConnected ? (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1.5 shadow-sm">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Sincronização Ativa & Silenciosa
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                          Não Conectado
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-white/70 mt-1 max-w-2xl">
+                      Injeta silenciosamente a configuração exata do <strong className="text-emerald-300">Alerta Inteligente</strong> no Google Agenda para que seu celular ou computador execute o alarme com som nativo na data e antecedências programadas.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                  {isGCalConnected ? (
+                    <div className="flex items-center gap-2">
+                      {handleSyncAllGCal && (
+                        <button
+                          type="button"
+                          onClick={handleSyncAllGCal}
+                          disabled={isSyncingGCal}
+                          className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+                          title="Injetar e atualizar todos os compromissos no Google Agenda"
+                        >
+                          <span className={`material-symbols-outlined text-[16px] ${isSyncingGCal ? 'animate-spin' : ''}`}>sync</span>
+                          <span>{isSyncingGCal ? 'Injetando...' : 'Sincronizar Todos'}</span>
+                        </button>
+                      )}
+                      {handleDisconnectGCal && (
+                        <button
+                          type="button"
+                          onClick={handleDisconnectGCal}
+                          className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                          title="Desconectar do Google Agenda"
+                        >
+                          Desconectar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    handleConnectGCal && (
+                      <button
+                        type="button"
+                        onClick={handleConnectGCal}
+                        disabled={isConnectingGCal}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white text-gray-900 hover:bg-gray-100 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md cursor-pointer disabled:opacity-50 hover:scale-105 active:scale-95"
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        <span>{isConnectingGCal ? 'Conectando...' : 'Conectar Google Agenda'}</span>
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {gcalFeedbackMsg && (
+                <div className="p-2.5 rounded-lg bg-emerald-950/90 border border-emerald-400/50 text-xs text-emerald-100 flex items-center gap-2 animate-in fade-in">
+                  <span className="material-symbols-outlined text-emerald-400 text-[18px]">verified</span>
+                  <span>{gcalFeedbackMsg}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -3431,62 +3328,6 @@ function DailyAgendaView({
       <button onClick={onOpenModal} className="fixed bottom-28 right-6 w-14 h-14 bg-white text-primary-container rounded-full flex items-center justify-center shadow-xl active:scale-95 transition-transform z-50">
         <span className="material-symbols-outlined text-3xl font-bold">add</span>
       </button>
-
-      {/* Modal de Alerta Ativo */}
-      {activeAlerts.length > 0 && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-[#091e15] border border-primary/50 w-full max-w-md rounded-2xl shadow-2xl flex flex-col p-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-              <div className="flex items-center gap-3 text-primary">
-                <span className="material-symbols-outlined text-[32px] animate-bounce">alarm</span>
-                <h2 className="text-2xl font-bold text-white">Lembrete Ativo!</h2>
-              </div>
-              {isAudioPlaying && (
-                <button
-                  onClick={stopActiveAudio}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/40 rounded-full text-xs font-bold transition-all animate-pulse cursor-pointer"
-                  title="Pausar Som"
-                >
-                  <span className="material-symbols-outlined text-[16px]">volume_off</span>
-                  <span>Pausar Som</span>
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto mb-6">
-              {activeAlerts.map((alert, idx) => (
-                <div key={`${alert.id}-${idx}`} className="bg-white/10 p-4 rounded-xl border border-white/20">
-                  <p className="text-xl font-semibold text-white">{alert.title}</p>
-                  <p className="text-primary font-medium mt-1">Horário: {alert.time}</p>
-                  {alert.contact && <p className="text-sm text-white/60 mt-1">Contato: {alert.contact}</p>}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-2.5 mt-auto">
-              {isAudioPlaying && (
-                <button
-                  onClick={stopActiveAudio}
-                  className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[20px]">pause_circle</span>
-                  Pausar Alarme Sonoro
-                </button>
-              )}
-              <button 
-                onClick={() => {
-                  stopActiveAudio();
-                  setActiveAlerts([]);
-                }}
-                className="w-full py-3 bg-primary text-on-primary font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[20px]">check_circle</span>
-                Ciente (Fechar Alerta)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 w-full z-50 bg-surface-container border-t border-white/10 flex justify-around items-center px-4 pb-6 pt-3 shadow-[0_-4px_24px_rgba(0,0,0,0.1)]">
@@ -5099,45 +4940,62 @@ ${whatsAppMsg}`);
     };
   };
 
-  // Modal Audio & Alarm State
-  const [modalIsRecording, setModalIsRecording] = useState(false);
-  const [modalIsAudioPlaying, setModalIsAudioPlaying] = useState(false);
-  const modalMediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const modalAudioChunksRef = useRef<Blob[]>([]);
-  const modalActiveAudioRef = useRef<HTMLAudioElement | null>(null);
-  const modalSynthTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Global Smart Alarm States & Audio Engine (Persistent across ALL screens: Main Menu, Calendar, Dashboard, Daily Agenda, Accounts, etc.)
+  const [alarmLeadTimes, setAlarmLeadTimes] = useState<string[]>(['0']);
+  const [alarmType, setAlarmType] = useState<'text' | 'sound'>('text');
+  const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [modalIsRecording, setModalIsRecording] = useState<boolean>(false);
+  const [modalIsAudioPlaying, setModalIsAudioPlaying] = useState<boolean>(false);
+  const [globalActiveAlerts, setGlobalActiveAlerts] = useState<Appointment[]>([]);
+  
+  const alertTriggeredRef = useRef<Record<string, boolean>>({});
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const synthTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
 
-  const modalStopActiveAudio = () => {
-    if (modalActiveAudioRef.current) {
-      modalActiveAudioRef.current.pause();
-      modalActiveAudioRef.current.currentTime = 0;
-      modalActiveAudioRef.current = null;
+  // Stop active audio / synth beeper
+  const stopActiveAudio = useCallback(() => {
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current.currentTime = 0;
+      activeAudioRef.current = null;
     }
-    if (modalSynthTimerRef.current) {
-      clearInterval(modalSynthTimerRef.current);
-      modalSynthTimerRef.current = null;
+    if (synthTimerRef.current) {
+      clearInterval(synthTimerRef.current);
+      synthTimerRef.current = null;
     }
+    setIsAudioPlaying(false);
     setModalIsAudioPlaying(false);
-  };
+  }, []);
 
-  const modalPlayAlarmSound = (audioUrl?: string | null) => {
-    modalStopActiveAudio();
-    if (audioUrl) {
+  // Play alarm sound (custom audio URL or synthesized Web Audio beeper)
+  const playAlarmSound = useCallback((audioUrl?: string | null) => {
+    stopActiveAudio();
+    const soundToPlay = (audioUrl !== undefined && audioUrl !== null && audioUrl !== '') ? audioUrl : customAudioUrl;
+    if (soundToPlay && soundToPlay.trim() !== '') {
       try {
-        const audio = new Audio(audioUrl);
+        const audio = new Audio(soundToPlay);
         audio.loop = true;
         audio.play().then(() => {
-          modalActiveAudioRef.current = audio;
+          activeAudioRef.current = audio;
+          setIsAudioPlaying(true);
           setModalIsAudioPlaying(true);
         }).catch(err => {
-          console.error("Erro ao tocar áudio no modal:", err);
+          console.error("Erro ao tocar áudio personalizado:", err);
+          setIsAudioPlaying(false);
           setModalIsAudioPlaying(false);
         });
       } catch (e) {
         console.error(e);
+        setIsAudioPlaying(false);
         setModalIsAudioPlaying(false);
       }
     } else {
+      // Fallback Web Audio API synthesized alarm sound loop
       try {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioContextClass) {
@@ -5159,53 +5017,327 @@ ${whatsAppMsg}`);
             osc.stop(ctx.currentTime + 0.3);
           };
           playBeep();
-          modalSynthTimerRef.current = setInterval(playBeep, 1200);
+          synthTimerRef.current = setInterval(playBeep, 1200);
+          setIsAudioPlaying(true);
           setModalIsAudioPlaying(true);
         }
       } catch (e) {
-        console.error("Erro Web Audio API no modal:", e);
+        console.error("Erro Web Audio API:", e);
       }
     }
-  };
+  }, [customAudioUrl, stopActiveAudio]);
 
-  const modalStartRecording = async () => {
+  const toggleLeadTime = useCallback((val: string) => {
+    setAlarmLeadTimes(prev => {
+      if (prev.includes(val)) {
+        const next = prev.filter(v => v !== val);
+        return next.length > 0 ? next : ['0'];
+      } else {
+        return [...prev, val];
+      }
+    });
+  }, []);
+
+  const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
-      modalMediaRecorderRef.current = mediaRecorder;
-      modalAudioChunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
-          modalAudioChunksRef.current.push(e.data);
+          audioChunksRef.current.push(e.data);
         }
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(modalAudioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
+          setCustomAudioUrl(reader.result as string);
           setFormData(prev => ({ ...prev, customAudioUrl: reader.result as string }));
         };
         stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
+      setIsRecording(true);
       setModalIsRecording(true);
     } catch (err) {
       console.error("Erro ao acessar microfone:", err);
-      alert("Não foi possível acessar o microfone para gravação.");
+      alert("Não foi possível acessar o microfone.");
     }
-  };
+  }, []);
 
-  const modalStopRecording = () => {
-    if (modalMediaRecorderRef.current && modalIsRecording) {
-      modalMediaRecorderRef.current.stop();
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && (isRecording || modalIsRecording)) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
       setModalIsRecording(false);
     }
-  };
+  }, [isRecording, modalIsRecording]);
 
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        setCustomAudioUrl(reader.result as string);
+        setFormData(prev => ({ ...prev, customAudioUrl: reader.result as string }));
+      };
+    }
+  }, []);
+
+  const testAlarm = useCallback(() => {
+    if (isAudioPlaying) {
+      stopActiveAudio();
+    } else if (alarmType === 'sound') {
+      playAlarmSound(customAudioUrl);
+    } else {
+      stopActiveAudio();
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification('Ágio Agenda - Teste', { body: 'Este é um teste de notificação do sistema.' });
+      } else {
+        alert("Ative as notificações do navegador para testar o alerta de texto.");
+      }
+    }
+  }, [isAudioPlaying, stopActiveAudio, alarmType, playAlarmSound, customAudioUrl]);
+
+  // Carrega configurações globais de alarme do storage
+  useEffect(() => {
+    import('localforage').then((localforage) => {
+      localforage.default.getItem('agenda_alarm_settings').then((saved: any) => {
+        if (saved) {
+          if (Array.isArray(saved.alarmLeadTimes) && saved.alarmLeadTimes.length > 0) {
+            setAlarmLeadTimes(saved.alarmLeadTimes);
+          } else if (saved.alarmLeadTime) {
+            setAlarmLeadTimes([String(saved.alarmLeadTime)]);
+          }
+          if (saved.alarmType) setAlarmType(saved.alarmType);
+          if (saved.customAudioUrl) setCustomAudioUrl(saved.customAudioUrl);
+        } else {
+          const oldSaved = typeof window !== 'undefined' ? localStorage.getItem('agenda_alarm_settings') : null;
+          if (oldSaved) {
+            try {
+              const parsed = JSON.parse(oldSaved);
+              if (Array.isArray(parsed.alarmLeadTimes) && parsed.alarmLeadTimes.length > 0) {
+                setAlarmLeadTimes(parsed.alarmLeadTimes);
+              } else if (parsed.alarmLeadTime) {
+                setAlarmLeadTimes([String(parsed.alarmLeadTime)]);
+              }
+              if (parsed.alarmType) setAlarmType(parsed.alarmType);
+              if (parsed.customAudioUrl) setCustomAudioUrl(parsed.customAudioUrl);
+            } catch (e) {
+              console.error('Erro ao ler agenda_alarm_settings', e);
+            }
+          }
+        }
+      });
+    });
+
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // GOOGLE CALENDAR AUTOMATIC SILENT ALARM INJECTION STATE & HANDLERS
+  const [isGCalConnected, setIsGCalConnected] = useState(false);
+  const [isConnectingGCal, setIsConnectingGCal] = useState(false);
+  const [isSyncingGCal, setIsSyncingGCal] = useState(false);
+  const [gcalFeedbackMsg, setGcalFeedbackMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribeToGCalAuth((connected) => {
+      setIsGCalConnected(connected);
+    });
+    initGoogleCalendarAuth((connected) => {
+      setIsGCalConnected(connected);
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  const handleConnectGCal = useCallback(async () => {
+    setIsConnectingGCal(true);
+    setGcalFeedbackMsg(null);
+    try {
+      const res = await connectGoogleCalendar();
+      if (res.success) {
+        setIsGCalConnected(true);
+        setGcalFeedbackMsg("✅ Google Agenda conectado com sucesso! Injeção silenciosa de alarmes ativa.");
+        if (appointments.length > 0) {
+          setIsSyncingGCal(true);
+          let syncedCount = 0;
+          for (const app of appointments) {
+            try {
+              const injRes = await injectAppointmentToGoogleCalendar(app, {
+                leadTimes: (app.reminders && app.reminders.length > 0) ? app.reminders : alarmLeadTimes,
+                autoAlarmSound: app.alarmType === 'sound'
+              });
+              if (injRes.success && injRes.eventId && app.gcalEventId !== injRes.eventId) {
+                setAppointments(curr => curr.map(a => String(a.id) === String(app.id) ? { ...a, gcalEventId: injRes.eventId } : a));
+                syncedCount++;
+              }
+            } catch (e) {}
+          }
+          setIsSyncingGCal(false);
+          if (syncedCount > 0) {
+            setGcalFeedbackMsg(`✅ Google Agenda conectado e ${syncedCount} compromisso(s) injetados com alarmes!`);
+          }
+        }
+      } else {
+        setGcalFeedbackMsg("⚠️ " + (res.error || "Não foi possível conectar ao Google Agenda."));
+      }
+    } catch (err: any) {
+      setGcalFeedbackMsg("❌ Erro: " + err.message);
+    } finally {
+      setIsConnectingGCal(false);
+    }
+  }, [appointments, alarmLeadTimes]);
+
+  const handleDisconnectGCal = useCallback(() => {
+    disconnectGoogleCalendar();
+    setIsGCalConnected(false);
+    setGcalFeedbackMsg("Google Agenda desconectado.");
+  }, []);
+
+  const handleSyncAllGCal = useCallback(async () => {
+    if (!isGoogleCalendarConnected()) {
+      await handleConnectGCal();
+      return;
+    }
+    setIsSyncingGCal(true);
+    setGcalFeedbackMsg(null);
+    let count = 0;
+    try {
+      for (const app of appointments) {
+        try {
+          const res = await injectAppointmentToGoogleCalendar(app, {
+            leadTimes: (app.reminders && app.reminders.length > 0) ? app.reminders : alarmLeadTimes,
+            autoAlarmSound: app.alarmType === 'sound'
+          });
+          if (res.success && res.eventId) {
+            if (app.gcalEventId !== res.eventId) {
+              setAppointments(curr => curr.map(a => String(a.id) === String(app.id) ? { ...a, gcalEventId: res.eventId } : a));
+            }
+            count++;
+          }
+        } catch (e) {}
+      }
+      setGcalFeedbackMsg(`✅ ${count} compromisso(s) injetados com sucesso no Google Agenda!`);
+    } catch (err: any) {
+      setGcalFeedbackMsg("❌ Erro ao sincronizar: " + err.message);
+    } finally {
+      setIsSyncingGCal(false);
+    }
+  }, [appointments, alarmLeadTimes, handleConnectGCal]);
+
+  // Salva configurações de alarme sempre que houver alteração
+  useEffect(() => {
+    import('localforage').then((localforage) => {
+      localforage.default.setItem('agenda_alarm_settings', {
+        alarmLeadTimes,
+        alarmLeadTime: alarmLeadTimes[0] || '0',
+        alarmType,
+        customAudioUrl
+      }).catch((err) => console.error('Erro ao salvar agenda_alarm_settings', err));
+    });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agenda_alarm_settings', JSON.stringify({
+        alarmLeadTimes,
+        alarmLeadTime: alarmLeadTimes[0] || '0',
+        alarmType,
+        customAudioUrl
+      }));
+    }
+  }, [alarmLeadTimes, alarmType, customAudioUrl]);
+
+  // MONITORAMENTO GLOBAL DE ALARME CONTÍNUO (Executa permanentemente em todas as telas: Main Menu, Calendar, Dashboard, Daily Agenda, Accounts, etc.)
+  useEffect(() => {
+    const checkGlobalAlarms = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayDateStr = `${year}-${month}-${day}`;
+
+      const nowMs = (now.getHours() * 60 + now.getMinutes()) * 60 * 1000 + now.getSeconds() * 1000;
+
+      appointments.forEach(app => {
+        if (app.date === todayDateStr && app.time) {
+          const [hours, minutes] = app.time.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return;
+          const appTimeMs = (hours * 60 + minutes) * 60 * 1000;
+
+          // Antecedências a verificar: as personalizadas do compromisso, ou a padrão global
+          const leadTimesToCheck = (app.reminders && app.reminders.length > 0)
+            ? app.reminders.map(r => r.replace(/[^\d]/g, '') || '0')
+            : alarmLeadTimes;
+
+          const effectiveAlarmType = app.alarmType || alarmType;
+          const effectiveAudioUrl = app.customAudioUrl || customAudioUrl;
+
+          leadTimesToCheck.forEach(ltStr => {
+            const leadMinutes = parseInt(ltStr, 10) || 0;
+            const leadTimeMs = leadMinutes * 60 * 1000;
+            const targetTimeMs = appTimeMs - leadTimeMs;
+
+            // Dispara se a hora atual for exatamente a target time (janela de tolerância de 30 segundos)
+            if (nowMs >= targetTimeMs && nowMs < targetTimeMs + 30000) {
+              const alertId = `${app.id}-${todayDateStr}-${app.time}-${leadMinutes}`;
+              if (!alertTriggeredRef.current[alertId]) {
+                alertTriggeredRef.current[alertId] = true;
+
+                const leadText = leadMinutes === 0 ? 'Agora!' : `Em ${leadMinutes} minutos`;
+                const notificationTitle = `⏰ Ágio Agenda: ${app.title}`;
+                const notificationBody = `${leadText} às ${app.time}${app.contact ? ' • ' + app.contact : ''}${app.address ? ' • ' + app.address : ''}`;
+
+                // Push / Web Notification
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                  try {
+                    new Notification(notificationTitle, {
+                      body: notificationBody,
+                      icon: '/2zguve.png',
+                      tag: alertId,
+                      requireInteraction: true
+                    });
+                  } catch (e) {
+                    console.error("Erro ao emitir Notificação:", e);
+                  }
+                }
+
+                // Reprodução de áudio se alarme sonoro estiver ativo
+                if (effectiveAlarmType === 'sound') {
+                  playAlarmSound(effectiveAudioUrl);
+                }
+
+                // Exibe no Modal Global de Alerta
+                setGlobalActiveAlerts(prev => {
+                  if (prev.some(a => a.id === app.id)) return prev;
+                  return [...prev, app];
+                });
+              }
+            }
+          });
+        }
+      });
+    };
+
+    checkIntervalRef.current = setInterval(checkGlobalAlarms, 10000);
+    return () => {
+      if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+    };
+  }, [appointments, alarmLeadTimes, alarmType, customAudioUrl, playAlarmSound]);
+
+  // Modal Audio & Alarm Handlers
+  const modalStopActiveAudio = stopActiveAudio;
+  const modalPlayAlarmSound = (audioUrl?: string | null) => playAlarmSound(audioUrl);
+  const modalStartRecording = startRecording;
+  const modalStopRecording = stopRecording;
   const modalHandleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -5218,12 +5350,12 @@ ${whatsAppMsg}`);
   };
 
   const modalTestAlarm = () => {
-    if (modalIsAudioPlaying) {
-      modalStopActiveAudio();
+    if (isAudioPlaying || modalIsAudioPlaying) {
+      stopActiveAudio();
     } else if (formData.alarmType === 'sound') {
-      modalPlayAlarmSound(formData.customAudioUrl);
+      playAlarmSound(formData.customAudioUrl || customAudioUrl);
     } else {
-      modalStopActiveAudio();
+      stopActiveAudio();
       if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         new Notification('Ágio Agenda - Teste', { body: 'Este é um teste de notificação do sistema.' });
       } else {
@@ -5286,6 +5418,8 @@ ${whatsAppMsg}`);
 
   const saveAppointmentDirectly = (dataToSave: any, editId: string | null) => {
     modalStopActiveAudio();
+    let targetAppId: string | null = editId;
+
     setAppointments((prev: Appointment[]) => {
       let updated: Appointment[];
       if (editId) {
@@ -5302,8 +5436,10 @@ ${whatsAppMsg}`);
           } : app
         ).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.time || '').localeCompare(b.time || ''));
       } else {
+        const newGeneratedId = Math.random().toString(36).substring(2, 11);
+        targetAppId = newGeneratedId;
         const newAppointment: Appointment = {
-          id: Math.random().toString(36).substring(2, 11),
+          id: newGeneratedId,
           ...dataToSave,
           category: dataToSave.category as CategoryType,
           color: dataToSave.color || '#10b981',
@@ -5325,6 +5461,26 @@ ${whatsAppMsg}`);
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: syncKey, appointments: updated })
         }).catch(err => console.error("Error syncing appointments:", err));
+      }
+
+      // Injeção Automática Silenciosa no Google Agenda
+      const targetApp = updated.find(app => String(app.id) === String(targetAppId));
+
+      if (targetApp && isGoogleCalendarConnected()) {
+        injectAppointmentToGoogleCalendar(targetApp, {
+          leadTimes: (targetApp.reminders && targetApp.reminders.length > 0) ? targetApp.reminders : alarmLeadTimes,
+          autoAlarmSound: targetApp.alarmType === 'sound'
+        }).then(res => {
+          if (res.success && res.eventId && targetApp.gcalEventId !== res.eventId) {
+            setAppointments(curr => {
+              const withGCal = curr.map(a => String(a.id) === String(targetApp.id) ? { ...a, gcalEventId: res.eventId } : a);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('agenda_appointments', JSON.stringify(withGCal));
+              }
+              return withGCal;
+            });
+          }
+        }).catch(err => console.error("Error in GCal silent injection:", err));
       }
 
       return updated;
@@ -5422,6 +5578,11 @@ ${whatsAppMsg}`);
 
   const handleDeleteAppointment = (id: string) => {
     if (confirm('Tem certeza que deseja excluir este compromisso?')) {
+      const appToDelete = appointments.find(app => String(app.id) === String(id));
+      if (appToDelete?.gcalEventId) {
+        deleteEventFromGoogleCalendar(appToDelete.gcalEventId).catch(() => {});
+      }
+
       setAppointments((prev: Appointment[]) => {
         const updated = prev.filter(app => String(app.id) !== String(id));
         if (typeof window !== 'undefined') {
@@ -6465,7 +6626,51 @@ ${notesDraft}`;
         
         {view === 'dashboard' && <DashboardView onNavigate={setView} onLogout={() => { handleLogout(); }} userName={userName} currentUser={currentUser} appointments={appointments} onOpenModal={handleOpenCreateModal} onOpenProfile={() => setView('profile')} onOpenAffiliate={() => setView('affiliate')} onOptimize={handleOptimizeAgenda} onOpenNotes={handleOpenNotes} onEditAppointment={handleOpenEdit} onDeleteAppointment={handleDeleteAppointment} onOpenSubscription={() => setView('subscription')} />}
 
-        {view === 'daily_agenda' && <DailyAgendaView selectedDate={selectedDateFilter} appointments={appointments} setAppointments={setAppointments} userName={userName} currentUser={currentUser} onNavigate={setView} onOpenModal={handleOpenCreateModal} onOpenProfile={() => setView('profile')} onOpenAffiliate={() => setView('affiliate')} onEditAppointment={handleOpenEdit} onOpenNotes={handleOpenNotes} onDeleteAppointment={handleDeleteAppointment} defaultReminders={defaultReminders} setDefaultReminders={setDefaultReminders} soundEnabled={soundEnabled} setSoundEnabled={setSoundEnabled} voiceEnabled={voiceEnabled} setVoiceEnabled={setVoiceEnabled} onLogout={() => handleLogout()} />}
+        {view === 'daily_agenda' && (
+          <DailyAgendaView 
+            selectedDate={selectedDateFilter} 
+            appointments={appointments} 
+            setAppointments={setAppointments} 
+            userName={userName} 
+            currentUser={currentUser} 
+            onNavigate={setView} 
+            onOpenModal={handleOpenCreateModal} 
+            onOpenProfile={() => setView('profile')} 
+            onOpenAffiliate={() => setView('affiliate')} 
+            onEditAppointment={handleOpenEdit} 
+            onOpenNotes={handleOpenNotes} 
+            onDeleteAppointment={handleDeleteAppointment} 
+            defaultReminders={defaultReminders} 
+            setDefaultReminders={setDefaultReminders} 
+            soundEnabled={soundEnabled} 
+            setSoundEnabled={setSoundEnabled} 
+            voiceEnabled={voiceEnabled} 
+            setVoiceEnabled={setVoiceEnabled} 
+            alarmLeadTimes={alarmLeadTimes}
+            setAlarmLeadTimes={setAlarmLeadTimes}
+            alarmType={alarmType}
+            setAlarmType={setAlarmType}
+            customAudioUrl={customAudioUrl}
+            setCustomAudioUrl={setCustomAudioUrl}
+            isAudioPlaying={isAudioPlaying}
+            isRecording={isRecording}
+            playAlarmSound={playAlarmSound}
+            stopActiveAudio={stopActiveAudio}
+            toggleLeadTime={toggleLeadTime}
+            startRecording={startRecording}
+            stopRecording={stopRecording}
+            handleFileUpload={handleFileUpload}
+            testAlarm={testAlarm}
+            onLogout={() => handleLogout()} 
+            isGCalConnected={isGCalConnected}
+            isConnectingGCal={isConnectingGCal}
+            isSyncingGCal={isSyncingGCal}
+            gcalFeedbackMsg={gcalFeedbackMsg}
+            handleConnectGCal={handleConnectGCal}
+            handleDisconnectGCal={handleDisconnectGCal}
+            handleSyncAllGCal={handleSyncAllGCal}
+          />
+        )}
         
         {view === 'admin' && isCurrentlyAdmin && <AdminDashboardView onNavigate={setView} appColor={appColor} setAppColor={setAppColor} appBgImage={appBgImage} setAppBgImage={setAppBgImage} onOpenSupport={() => setIsSupportModalOpen(true)} onSettingsUpdated={loadSettings} onLogout={() => handleLogout()} />}
 
@@ -7110,6 +7315,14 @@ ${notesDraft}`;
                   )}
                 </div>
               </div>
+
+              {/* Status de Sincronização Silenciosa com Google Agenda */}
+              {isGCalConnected && (
+                <div className="mt-4 p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-emerald-300">
+                  <span className="material-symbols-outlined text-emerald-400 text-[18px]">event_available</span>
+                  <span>Este compromisso e seus alarmes serão injetados automaticamente no seu <strong>Google Agenda</strong>.</span>
+                </div>
+              )}
               
               <div className="flex gap-2 sm:gap-4 mt-6 pt-6 border-t border-white/20">
                 {editingAppointmentId && (
@@ -8481,6 +8694,63 @@ ${notesDraft}`;
         </div>
 
 
+      )}
+
+      {/* Modal de Alerta Ativo Global (Dispara em qualquer tela: Menu, Calendário, Dashboard, Agenda Diária, Contas, etc.) */}
+      {globalActiveAlerts.length > 0 && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-[#091e15] border border-primary/50 w-full max-w-md rounded-2xl shadow-2xl flex flex-col p-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-3 text-primary">
+                <span className="material-symbols-outlined text-[32px] animate-bounce">alarm</span>
+                <h2 className="text-2xl font-bold text-white">Lembrete Ativo!</h2>
+              </div>
+              {isAudioPlaying && (
+                <button
+                  onClick={stopActiveAudio}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/40 rounded-full text-xs font-bold transition-all animate-pulse cursor-pointer"
+                  title="Pausar Som"
+                >
+                  <span className="material-symbols-outlined text-[16px]">volume_off</span>
+                  <span>Pausar Som</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto mb-6">
+              {globalActiveAlerts.map((alert, idx) => (
+                <div key={`${alert.id}-${idx}`} className="bg-white/10 p-4 rounded-xl border border-white/20">
+                  <p className="text-xl font-semibold text-white">{alert.title}</p>
+                  <p className="text-primary font-medium mt-1">Horário: {alert.time}</p>
+                  {alert.contact && <p className="text-sm text-white/60 mt-1">Contato: {alert.contact}</p>}
+                  {alert.address && <p className="text-sm text-white/60 mt-0.5">Local: {alert.address}</p>}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2.5 mt-auto">
+              {isAudioPlaying && (
+                <button
+                  onClick={stopActiveAudio}
+                  className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">pause_circle</span>
+                  Pausar Alarme Sonoro
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  stopActiveAudio();
+                  setGlobalActiveAlerts([]);
+                }}
+                className="w-full py-3 bg-primary text-on-primary font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                Ciente (Fechar Alerta)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Administrador Environment Switcher Floating Control */}
