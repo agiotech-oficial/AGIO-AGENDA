@@ -1,0 +1,13 @@
+const firebaseConfig = {
+  projectId: "gen-lang-client-0127329367",
+  appId: "1:578638909048:web:6f1017ae6593ffdf00278d",
+  apiKey: "AIzaSyDjnZcA9I2LE4BlTwejbTeXaT4z77kKMik",
+  authDomain: "gen-lang-client-0127329367.firebaseapp.com",
+  storageBucket: "gen-lang-client-0127329367.firebasestorage.app",
+  messagingSenderId: "578638909048",
+  measurementId: "",
+  oAuthClientId: "578638909048-01v5ke5e8plc17gl4a2sg0ul1lg4vunn.apps.googleusercontent.com",
+  recaptchaSiteKey: ""
+};
+
+export default firebaseConfig;

@@ -1,8 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
-import firebaseConfig from '../firebase-applet-config.json';
+import firebaseConfig from './firebaseConfigData';
 
 let app: FirebaseApp;
 if (!getApps().length) {
@@ -11,22 +10,7 @@ if (!getApps().length) {
   app = getApp();
 }
 
-let analytics: Analytics | null = null;
-if (typeof window !== 'undefined') {
-  isSupported()
-    .then((supported) => {
-      if (supported) {
-        try {
-          analytics = getAnalytics(app);
-        } catch {
-          // Ignore analytics initialization failure in sandboxed environments
-        }
-      }
-    })
-    .catch(() => {
-      // Ignore unsupported or fetch rejection errors
-    });
-}
+const analytics = null;
 
 let _db: Firestore | null = null;
 export const getDb = (): Firestore => {
